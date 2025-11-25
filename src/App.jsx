@@ -37,6 +37,12 @@ function App() {
     // Enhanced touch handling for finer control on mobile
     const handleTouchStart = (e) => {
       if (!documentOpen && e.touches.length > 0) {
+        // Check if touch is on a button - allow button clicks to work
+        const target = e.target
+        if (target && (target.closest('button') || target.tagName === 'BUTTON')) {
+          // Don't prevent default for buttons - let them be clickable
+          return
+        }
         const touch = e.touches[0]
         setMousePosition({ x: touch.clientX, y: touch.clientY })
         // Prevent scrolling when interacting with spotlight
@@ -46,6 +52,12 @@ function App() {
 
     const handleTouchMove = (e) => {
       if (!documentOpen && e.touches.length > 0) {
+        // Check if touch is on a button - allow button clicks to work
+        const target = e.target
+        if (target && (target.closest('button') || target.tagName === 'BUTTON')) {
+          // Don't prevent default for buttons - let them be clickable
+          return
+        }
         const touch = e.touches[0]
         // Prevent scrolling when interacting with spotlight
         e.preventDefault()

@@ -654,6 +654,11 @@ html {
   text-transform: lowercase;
   transform: rotate(-0.5deg);
   font-weight: 400;
+  /* Ensure button is touchable on mobile */
+  touch-action: manipulation;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: rgba(180, 140, 255, 0.2);
+  user-select: none;
 }
 
 .open-button:hover {
@@ -685,7 +690,7 @@ html {
   width: 100%;
   max-width: 680px;
   min-height: 100vh;
-  padding: 80px 140px 120px 40px;
+  padding: 80px 40px 120px 40px;
   margin: 0 auto;
   overflow-x: hidden;
 }
@@ -728,101 +733,6 @@ html {
   font-variant-numeric: tabular-nums;
 }
 
-/* Grass background on right side with individual blades */
-.essay-container::before {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 140px;
-  height: 100%;
-  background: 
-    linear-gradient(
-      to bottom,
-      #1a4a0f 0%,
-      #2d5016 15%,
-      #3a6b1f 30%,
-      #4a7c2a 50%,
-      #3a6b1f 70%,
-      #2d5016 85%,
-      #1a4a0f 100%
-    );
-  pointer-events: none;
-  z-index: 1;
-  overflow: hidden;
-}
-
-/* Individual grass blades using pseudo-elements */
-.essay-container::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 140px;
-  height: 100%;
-  z-index: 2;
-  pointer-events: none;
-  background-image: 
-    /* Grass blade patterns - cleaner individual blades */
-    linear-gradient(82deg, transparent 48%, #2d5016 48%, #2d5016 49.5%, transparent 49.5%),
-    linear-gradient(-82deg, transparent 48%, #3a6b1f 48%, #3a6b1f 49.5%, transparent 49.5%),
-    linear-gradient(85deg, transparent 47.5%, #2d5016 47.5%, #2d5016 49%, transparent 49%),
-    linear-gradient(-85deg, transparent 47.5%, #3a6b1f 47.5%, #3a6b1f 49%, transparent 49%),
-    linear-gradient(78deg, transparent 49%, #4a7c2a 49%, #4a7c2a 50.5%, transparent 50.5%),
-    linear-gradient(-78deg, transparent 49%, #3a6b1f 49%, #3a6b1f 50.5%, transparent 50.5%),
-    linear-gradient(88deg, transparent 46.5%, #2d5016 46.5%, #2d5016 48%, transparent 48%),
-    linear-gradient(-88deg, transparent 46.5%, #3a6b1f 46.5%, #3a6b1f 48%, transparent 48%),
-    linear-gradient(80deg, transparent 48.5%, #2d5016 48.5%, #2d5016 50%, transparent 50%),
-    linear-gradient(-80deg, transparent 48.5%, #3a6b1f 48.5%, #3a6b1f 50%, transparent 50%);
-  background-size: 
-    3px 25px,
-    3px 23px,
-    2.5px 27px,
-    2.5px 24px,
-    3.5px 22px,
-    3.5px 26px,
-    2px 28px,
-    2px 25px,
-    3px 24px,
-    3px 29px;
-  background-position: 
-    2px 0,
-    5px 2px,
-    8px 1px,
-    11px 3px,
-    14px 0,
-    17px 2px,
-    20px 1px,
-    23px 4px,
-    26px 0,
-    29px 2px,
-    32px 1px,
-    35px 3px,
-    38px 0,
-    41px 2px,
-    44px 1px,
-    47px 4px,
-    50px 0,
-    53px 2px,
-    56px 1px,
-    59px 3px,
-    62px 0,
-    65px 2px,
-    68px 1px,
-    71px 4px,
-    74px 0,
-    77px 2px,
-    80px 1px,
-    83px 3px,
-    86px 0,
-    89px 2px,
-    92px 1px,
-    95px 4px;
-  background-repeat: repeat-y;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.7;
-}
 
 /* Soccer goal/net scrollbar */
 .document-page::-webkit-scrollbar {
@@ -1065,14 +975,8 @@ html {
 /* Essay mobile styles */
 @media (max-width: 768px) {
   .essay-container {
-    padding: 50px 80px 100px 20px;
+    padding: 50px 20px 100px 20px;
     max-width: 100%;
-  }
-
-  .essay-container::before,
-  .essay-container::after {
-    width: 80px;
-    display: block;
   }
 
   .essay-text {
@@ -1099,13 +1003,7 @@ html {
 /* Small mobile devices */
 @media (max-width: 480px) {
   .essay-container {
-    padding: 40px 60px 80px 16px;
-  }
-
-  .essay-container::before,
-  .essay-container::after {
-    width: 60px;
-    display: block;
+    padding: 40px 16px 80px 16px;
   }
 
   .essay-text {
