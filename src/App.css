@@ -673,8 +673,9 @@ html {
   width: 100%;
   max-width: 680px;
   min-height: 100vh;
-  padding: 80px 40px 120px;
+  padding: 80px 140px 120px 40px;
   margin: 0 auto;
+  overflow-x: hidden;
 }
 
 .essay-content {
@@ -714,8 +715,7 @@ html {
 }
 
 /* Grass background on right side with individual blades */
-
-.document-page::before {
+.essay-container::before {
   content: '';
   position: absolute;
   right: 0;
@@ -739,7 +739,7 @@ html {
 }
 
 /* Individual grass blades using pseudo-elements */
-.document-page::after {
+.essay-container::after {
   content: '';
   position: absolute;
   right: 0;
@@ -1049,8 +1049,13 @@ html {
 /* Essay mobile styles */
 @media (max-width: 768px) {
   .essay-container {
-    padding: 50px 20px 100px;
+    padding: 50px 100px 100px 20px;
     max-width: 100%;
+  }
+
+  .essay-container::before,
+  .essay-container::after {
+    width: 80px;
   }
 
   .essay-text {
@@ -1077,7 +1082,12 @@ html {
 /* Small mobile devices */
 @media (max-width: 480px) {
   .essay-container {
-    padding: 40px 16px 80px;
+    padding: 40px 70px 80px 16px;
+  }
+
+  .essay-container::before,
+  .essay-container::after {
+    width: 60px;
   }
 
   .essay-text {
@@ -1107,12 +1117,6 @@ html {
     top: 16px;
   }
 }
-
-/* Small mobile devices */
-@media (max-width: 480px) {
-  .essay-container {
-    padding: 40px 16px 80px;
-  }
 
   .essay-text {
     font-size: 0.9rem;
