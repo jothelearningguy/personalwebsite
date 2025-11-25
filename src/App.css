@@ -26,8 +26,8 @@ html {
   background-image: 
     radial-gradient(circle at 20% 50%, rgba(120, 80, 200, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(200, 120, 80, 0.02) 0%, transparent 50%);
-  /* Enable touch tracking on mobile */
-  touch-action: pan-x pan-y;
+  /* Enable touch tracking on mobile - prevent scrolling when spotlight is active */
+  touch-action: manipulation;
 }
 
 .app::before {
@@ -53,6 +53,8 @@ html {
 .app.document-open {
   background: #0f0f0f;
   cursor: none;
+  /* Allow scrolling when document is open */
+  touch-action: pan-y;
 }
 
 /* Spotlight overlay - black with transparent circle at cursor */
@@ -1105,34 +1107,6 @@ html {
     width: 60px;
     display: block;
   }
-
-  .essay-text {
-    font-size: 0.9rem;
-    line-height: 1.8;
-  }
-
-  .essay-heading {
-    font-size: 0.95rem;
-    margin-top: 2em;
-    margin-bottom: 1em;
-  }
-
-  .mystery-title {
-    font-size: clamp(1.8rem, 10vw, 2.5rem);
-  }
-
-  .open-button,
-  .close-button {
-    padding: 10px 16px;
-    font-size: 0.75rem;
-    bottom: 16px;
-    right: 16px;
-  }
-
-  .close-button {
-    top: 16px;
-  }
-}
 
   .essay-text {
     font-size: 0.9rem;

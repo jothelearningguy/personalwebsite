@@ -36,15 +36,19 @@ function App() {
 
     // Enhanced touch handling for finer control on mobile
     const handleTouchStart = (e) => {
-      if (e.touches.length > 0) {
+      if (!documentOpen && e.touches.length > 0) {
         const touch = e.touches[0]
         setMousePosition({ x: touch.clientX, y: touch.clientY })
+        // Prevent scrolling when interacting with spotlight
+        e.preventDefault()
       }
     }
 
     const handleTouchMove = (e) => {
-      if (e.touches.length > 0) {
+      if (!documentOpen && e.touches.length > 0) {
         const touch = e.touches[0]
+        // Prevent scrolling when interacting with spotlight
+        e.preventDefault()
         // Use requestAnimationFrame for smoother updates
         requestAnimationFrame(() => {
           setMousePosition({ x: touch.clientX, y: touch.clientY })
@@ -52,15 +56,28 @@ function App() {
       }
     }
 
+    const handleTouchEnd = (e) => {
+      // Optional: handle touch end if needed
+    }
+
     window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('touchstart', handleTouchStart, { passive: true })
-    window.addEventListener('touchmove', handleTouchMove, { passive: true })
+    // Use document and body for better touch event capture on mobile
+    // Non-passive to allow preventDefault when document is not open
+    document.addEventListener('touchstart', handleTouchStart, { passive: false })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd, { passive: true })
+    // Also attach to body as fallback
+    document.body.addEventListener('touchstart', handleTouchStart, { passive: false })
+    document.body.addEventListener('touchmove', handleTouchMove, { passive: false })
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+      document.body.removeEventListener('touchstart', handleTouchStart)
+      document.body.removeEventListener('touchmove', handleTouchMove)
     }
-  }, [])
+  }, [documentOpen])
 
   // Responsive spotlight size - smaller on mobile for better control
   const [spotlightSize, setSpotlightSize] = useState(200)
