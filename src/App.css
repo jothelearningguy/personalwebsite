@@ -75,7 +75,7 @@ html {
   position: fixed;
   font-size: 1.8rem;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 10001; /* Above modal overlay (10000) */
   transition: left 0.08s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
               top 0.08s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
@@ -98,7 +98,7 @@ html {
   width: 300px;
   height: 300px;
   pointer-events: none;
-  z-index: 15;
+  z-index: 10000; /* Above modal content but below cursor */
   transition: left 0.15s cubic-bezier(0.4, 0, 0.2, 1), top 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -349,6 +349,17 @@ html {
 .secret-item.revealed {
   opacity: 1;
   animation: pulse 1s ease-in-out infinite;
+}
+
+.secret-item.revealed.clickable {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.secret-item.revealed.clickable:hover .secret-text {
+  background: rgba(20, 20, 20, 0.95);
+  border-color: rgba(180, 140, 255, 0.4);
+  transform: translateX(-50%) rotate(-0.5deg) scale(1.05);
 }
 
 .secret-text {
@@ -1233,6 +1244,175 @@ html {
     padding: 14px 30px;
     font-size: 0.9rem;
     min-height: 48px; /* Touch-friendly */
+  }
+}
+
+/* Secret Detail Modal */
+.secret-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 9998; /* Below cursor (10001) and glow (10000) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.secret-modal {
+  background: rgba(15, 15, 15, 0.95);
+  border: 1px solid rgba(180, 140, 255, 0.2);
+  border-radius: 8px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.secret-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(180, 140, 255, 0.2);
+  color: rgba(240, 240, 240, 0.9);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10002; /* Above cursor (10001) so it's clickable */
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+}
+
+.secret-modal-close:hover {
+  background: rgba(30, 30, 30, 0.9);
+  border-color: rgba(180, 140, 255, 0.4);
+  transform: rotate(90deg);
+}
+
+.secret-modal-content {
+  display: flex;
+  flex-direction: column;
+  padding: 40px;
+}
+
+.secret-modal-image-container {
+  width: 100%;
+  max-height: 500px;
+  min-height: 300px;
+  margin-bottom: 30px;
+  border-radius: 4px;
+  overflow: visible;
+  background: rgba(10, 10, 10, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.secret-modal-image {
+  width: 100%;
+  max-width: 100%;
+  max-height: 500px;
+  min-height: 200px;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 4px;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.secret-modal-text {
+  color: #e8e8e8;
+}
+
+.secret-modal-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin-bottom: 20px;
+  color: rgba(240, 240, 240, 0.95);
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.secret-modal-description {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: rgba(220, 220, 220, 0.9);
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+/* Mobile styles for modal */
+@media (max-width: 768px) {
+  .secret-modal {
+    max-width: 95%;
+    max-height: 85vh;
+    margin: 20px;
+  }
+
+  .secret-modal-content {
+    padding: 30px 20px;
+  }
+
+  .secret-modal-image-container {
+    max-height: 300px;
+    min-height: 200px;
+    height: auto;
+    margin-bottom: 20px;
+  }
+
+  .secret-modal-image {
+    max-height: 300px;
+  }
+
+  .secret-modal-title {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+  }
+
+  .secret-modal-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .secret-modal-close {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
   }
 }
 

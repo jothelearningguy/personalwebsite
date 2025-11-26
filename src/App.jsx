@@ -10,6 +10,7 @@ function App() {
   const [exploreClicked, setExploreClicked] = useState(false)
   const [formData, setFormData] = useState({ name: '', email: '', message: '' })
   const [formStatus, setFormStatus] = useState({ loading: false, success: false, error: '' })
+  const [selectedSecret, setSelectedSecret] = useState(null) // Track which secret pop-up is open
   const rafRef = useRef(null)
   const elementCacheRef = useRef({})
   
@@ -291,14 +292,86 @@ function App() {
   // Hidden content areas - fun facts about Joseph scattered across the page
   // Positioned to avoid overlap with centered main content (center area ~35-65% x, ~35-65% y)
   const hiddenSecrets = [
-    { id: 1, x: '15%', y: '25%', text: 'Ex-OpenAI Member of Technical Staff' },
-    { id: 2, x: '75%', y: '20%', text: "World's first intern in the world's first computational neurosurgery lab" },
-    { id: 3, x: '85%', y: '55%', text: 'Computational Neuroscience Scholar at Carnegie Mellon University' },
-    { id: 4, x: '25%', y: '75%', text: 'UNC Chapel Hill - Honors Biology, Neuroscience, Chemistry Graduate' },
-    { id: 5, x: '8%', y: '85%', text: "Chancellor's Science Scholar - 1 of 25 selected worldwide" },
-    { id: 6, x: '92%', y: '30%', text: 'The Residency Delta Finalist' },
-    { id: 7, x: '20%', y: '12%', text: 'CEO and Founder of Cognition' },
-    { id: 8, x: '15%', y: '55%', text: 'LAUNCH Chapel Hill Startup Accelerator Cohort 25 Recipient' },
+    { 
+      id: 1, 
+      x: '15%', 
+      y: '25%', 
+      text: 'Ex-OpenAI Member of Technical Staff',
+      image: '/assets/images/openai.jpg',
+      description: 'At 21, I joined OpenAI as a Member of Technical Staff, serving as a biology expert for next-generation large language models. I wasn\'t just coding—I was helping shape how AI understands biology, neuroscience, and scientific reasoning. I worked on fine-tuning models that could interpret research data, generate context-aware responses, and apply cutting-edge biological principles. I saw firsthand how AI could transform scientific discovery, but I also saw its limitations. And that\'s when I knew I needed to build something of my own.'
+    },
+    { 
+      id: 2, 
+      x: '75%', 
+      y: '20%', 
+      text: "World's first intern in the world's first computational neurosurgery lab",
+      image: '/assets/images/neurosurgery.jpg',
+      description: 'In 2023, at 20 years old, I became the world\'s first undergraduate intern in the world\'s first Computational Neurosurgery lab in Sydney, Australia, under Professor Antonio Di Ieva. Imagine shadowing over 80 neurosurgical operations, witnessing neuromodulation procedures that most medical students never see, and leading research on the legal and ethical implications of AI in neurosurgery. I didn\'t just observe—I participated in weekly case meetings at Macquarie University Hospital, presented at the Australian Institute of Health Innovation, and saw the future of medicine being written. That was my summer.'
+    },
+    { 
+      id: 3, 
+      x: '85%', 
+      y: '55%', 
+      text: 'Computational Neuroscience Scholar at Carnegie Mellon University',
+      image: '/assets/images/cmu.jpg',
+      description: 'As a Computational Neuroscience Scholar at Carnegie Mellon University, I worked at the intersection of neuroscience and artificial intelligence. This partnership was instrumental in advancing Cognition\'s research, exploring what happens when you merge EEG technology with artificial intelligence. Carnegie Mellon provided critical research support and collaboration opportunities that helped shape our understanding of brain-computer interfaces and neural computation.'
+    },
+    { 
+      id: 4, 
+      x: '25%', 
+      y: '75%', 
+      text: 'UNC Chapel Hill - Honors Biology, Neuroscience, Chemistry Graduate',
+      image: '/assets/images/unc.JPG',
+      description: 'I arrived at UNC Chapel Hill at 18 as one of 25 students worldwide selected for the Chancellor\'s Science Scholars program—the university\'s highest STEM merit scholarship. But here\'s the thing: I wasn\'t just there to study. I was there to build. While my peers were memorizing textbooks, I was already prototyping a non-invasive brain-computer interface. I graduated with honors in Biology, Neuroscience, and Chemistry, but more importantly, I left with the foundation to build at the intersection of biology and technology.'
+    },
+    { 
+      id: 5, 
+      x: '8%', 
+      y: '85%', 
+      text: "Chancellor's Science Scholar - 1 of 25 selected worldwide",
+      image: '/assets/images/chancellor.jpg',
+      description: 'Selected as one of 25 students worldwide for the Chancellor\'s Science Scholars program—UNC Chapel Hill\'s highest STEM merit scholarship. This recognition wasn\'t just about academic achievement; it was about potential. The program provided the resources and community that enabled me to pursue unconventional paths, to build while studying, and to ask questions that hadn\'t been asked before. It was the foundation that made everything else possible.'
+    },
+    { 
+      id: 6, 
+      x: '92%', 
+      y: '30%', 
+      text: 'The Residency Delta Finalist',
+      image: '/assets/images/residency.jpg',
+      description: 'Selected as 1 of 20 finalists for The Residency Delta—Sam Altman\'s accelerator program—from over 1,500 applicants. This prestigious program recognizes innovative entrepreneurs and technologists making significant impact in their fields. This recognition came as I was building Cognition and exploring the spaces between biology and technology. Being a finalist validated that the work at the edges—the unconventional paths—is where meaningful innovation happens.'
+    },
+    { 
+      id: 7, 
+      x: '20%', 
+      y: '12%', 
+      text: 'CEO and Founder of Cognition',
+      image: '/assets/images/cognition.jpg',
+      description: 'In May 2025, I founded Cognition—The Cognitive OS for Learning and the world\'s first Social Intelligence Network. We\'re solving the fundamental forgetting crisis: people forget up to 70% of what they learn online within 24 hours. Cognition is the drop-in intelligence layer that transforms any software into a living system that converses, remembers, and reinforces growth across apps, devices, and time. We\'ve secured $150,000+ in funding and partnered with Google DeepMind, NVIDIA, and Carnegie Mellon. Looking ahead, we\'re pioneering non-invasive AI EEG brain-computer interfaces that will close the loop between biological learning processes and digital knowledge systems—making forgetting optional and learning effortless. Cognition is more than software; it\'s the cognitive infrastructure for humanity\'s next chapter.'
+    },
+    { 
+      id: 8, 
+      x: '80%', 
+      y: '70%', 
+      text: 'LAUNCH Chapel Hill Startup Accelerator Cohort 25 Recipient',
+      image: '/assets/images/launch.jpg',
+      description: 'In 2024, I was selected as 1 of 10 ventures across North Carolina for LAUNCH Chapel Hill\'s competitive Summer Accelerator. I refined our business model with mentorship from Harvard Business School faculty and delivered pitches that demonstrated not just traction, but vision. That same year, I also received the International Young Outstanding Leadership Award in Healthcare in Las Vegas and was named a Dreamers Who Do INNOVATE Carolina Scholar. But awards are just markers. What matters is what you do next.'
+    },
+    { 
+      id: 9, 
+      x: '10%', 
+      y: '40%', 
+      text: 'Played at the highest level of youth soccer in US',
+      image: '/assets/images/soccer.jpg',
+      description: 'I started playing soccer at the age of 3 recreationally, then began playing competitive soccer at the lowest level at age 10. I got moved up every year after that, steadily climbing through the ranks. In my final two years playing (sophomore and junior years of college), I played at the highest youth level in the United States—the Elite Clubs National League. This journey from recreational play to the pinnacle of youth soccer taught me about discipline, perseverance, continuous improvement, and what it takes to compete at the highest levels—lessons that have shaped my approach to building companies and leading teams.'
+    },
+    { 
+      id: 10, 
+      x: '90%', 
+      y: '80%', 
+      text: 'Founding team for Say Word FC',
+      image: '/assets/images/saywordfc.jpg',
+      description: 'I was part of the founding team for Say Word FC, which went from a local 7v7 team to internationally recognized, playing in global tournaments such as TST (The Soccer Tournament) against the likes of Sergio Aguero, Luis Nani, and Heather O\'Reilly on ESPN. This journey taught me about building teams, creating culture, establishing vision, and turning an idea into a reality. The lessons learned from founding and building Say Word FC—from recruiting players to establishing team identity to competing on the world stage—directly informed my approach to building companies and leading teams.'
+    },
   ]
 
   const isInSpotlight = (secretX, secretY) => {
@@ -321,6 +394,14 @@ function App() {
   const handleCloseDocument = () => {
     setDocumentOpen(false)
     setExploreClicked(false)
+  }
+
+  const handleSecretClick = (secret) => {
+    setSelectedSecret(secret)
+  }
+
+  const handleCloseSecretModal = () => {
+    setSelectedSecret(null)
   }
 
   const handleExploreClick = () => {
@@ -416,12 +497,13 @@ function App() {
               return (
                 <div
                   key={secret.id}
-                    className={`secret-item ${isPermanentlyRevealed ? 'revealed permanent' : ''}`}
+                    className={`secret-item ${isPermanentlyRevealed ? 'revealed permanent' : ''} ${isPermanentlyRevealed ? 'clickable' : ''}`}
                     style={{
                       left: secret.x,
                       top: secret.y,
                       transform: 'translate(-50%, -50%)'
                     }}
+                    onClick={() => isPermanentlyRevealed && handleSecretClick(secret)}
                   >
                     {isPermanentlyRevealed && (
                       <div className="secret-text">{secret.text}</div>
@@ -463,12 +545,13 @@ function App() {
               return (
                 <div
                   key={`spotlight-${secret.id}`}
-                  className={`secret-item ${currentlyRevealed ? 'revealed' : ''}`}
+                  className={`secret-item ${currentlyRevealed ? 'revealed clickable' : ''}`}
                   style={{
                     left: secret.x,
                     top: secret.y,
                     transform: 'translate(-50%, -50%)'
                   }}
+                  onClick={() => currentlyRevealed && handleSecretClick(secret)}
                 >
                   {currentlyRevealed && (
                     <div className="secret-text">{secret.text}</div>
@@ -633,6 +716,43 @@ function App() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Secret Detail Modal */}
+      {selectedSecret && (
+        <div className="secret-modal-overlay" onClick={handleCloseSecretModal}>
+          <div className="secret-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="secret-modal-close" onClick={handleCloseSecretModal}>
+              ×
+            </button>
+            <div className="secret-modal-content">
+              {selectedSecret.image && (
+                <div className="secret-modal-image-container">
+                  <img 
+                    src={selectedSecret.image} 
+                    alt={selectedSecret.text}
+                    className="secret-modal-image"
+                    onError={(e) => {
+                      console.error('Image failed to load:', selectedSecret.image)
+                      e.target.style.display = 'none'
+                      e.target.parentElement.style.minHeight = '0'
+                      e.target.parentElement.style.marginBottom = '0'
+                    }}
+                    onLoad={(e) => {
+                      console.log('Image loaded successfully:', selectedSecret.image)
+                      e.target.style.display = 'block'
+                      e.target.style.visibility = 'visible'
+                    }}
+                  />
+                </div>
+              )}
+              <div className="secret-modal-text">
+                <h2 className="secret-modal-title">{selectedSecret.text}</h2>
+                <p className="secret-modal-description">{selectedSecret.description}</p>
               </div>
             </div>
           </div>
