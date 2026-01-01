@@ -161,17 +161,25 @@ function App() {
 
   // Touch handlers - optimized
   const handleTouchStart = useCallback((e) => {
-    if (documentOpen || isInteractiveElement(e.target)) return
+    // Check if touching a secret item first - don't prevent default
+    if (isInteractiveElement(e.target)) {
+      return // Let the secret item handle its own events
+    }
+    if (documentOpen) return
     if (e.touches.length > 0) {
-        const touch = e.touches[0]
+      const touch = e.touches[0]
       updateMousePosition(touch.clientX, touch.clientY)
-        e.preventDefault()
+      e.preventDefault()
     }
   }, [documentOpen, isInteractiveElement, updateMousePosition])
 
   const touchMoveRafRef = useRef(null)
   const handleTouchMove = useCallback((e) => {
-    if (documentOpen || isInteractiveElement(e.target)) return
+    // Check if touching a secret item first - don't prevent default
+    if (isInteractiveElement(e.target)) {
+      return // Let the secret item handle its own events
+    }
+    if (documentOpen) return
     if (e.touches.length > 0) {
       e.preventDefault()
       if (touchMoveRafRef.current) cancelAnimationFrame(touchMoveRafRef.current)

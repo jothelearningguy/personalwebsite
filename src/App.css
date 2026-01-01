@@ -64,11 +64,13 @@ html {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Never block interactions */
+  pointer-events: none !important; /* Never block interactions - force it */
   z-index: 10;
   /* Only use will-change on desktop for better mobile performance */
   contain: layout style paint;
   /* Remove transition for instant updates, no lag */
+  /* Ensure it never captures events */
+  touch-action: none;
 }
 
 /* Interactive elements - ensure they're above spotlight (z-index: 10) */
@@ -91,12 +93,16 @@ button.secret-modal-close {
 .secret-item.clickable,
 .secret-item.revealed.clickable,
 .secret-item.revealed.permanent.clickable {
-  z-index: 10002 !important;
+  z-index: 10003 !important; /* Higher than everything */
   pointer-events: auto !important;
-  cursor: pointer;
+  cursor: pointer !important;
   /* Ensure touch events work */
   touch-action: manipulation;
   -webkit-tap-highlight-color: rgba(180, 140, 255, 0.2);
+  /* Make sure it's interactive */
+  user-select: none;
+  /* Ensure it's above all other layers */
+  position: relative;
 }
 
 /* Optimize for mobile - reduce will-change usage */
@@ -424,8 +430,16 @@ button.secret-modal-close {
   z-index: 6;
   pointer-events: none;
   min-width: 200px;
+  min-height: 50px; /* Ensure minimum clickable area */
   /* Ensure proper stacking and interaction */
   isolation: isolate;
+}
+
+/* Make clickable secret items have larger hit area */
+.secret-item.clickable,
+.secret-item.revealed.clickable {
+  min-height: 60px;
+  padding: 10px; /* Add padding for larger click area */
 }
 
 .secret-item.revealed {
@@ -443,7 +457,8 @@ button.secret-modal-close {
 .secret-item.revealed.clickable {
   opacity: 1;
   pointer-events: auto !important;
-  z-index: 10002 !important;
+  z-index: 10003 !important;
+  cursor: pointer !important;
 }
 
 .secret-item.revealed.clickable:hover .secret-text {
@@ -453,10 +468,10 @@ button.secret-modal-close {
 }
 
 .secret-text {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%) rotate(-0.5deg);
+  position: relative; /* Changed from absolute to relative for better layout */
+  top: auto;
+  left: auto;
+  transform: rotate(-0.5deg);
   color: #e8e8e8;
   font-size: 0.9rem;
   font-family: 'Inter', sans-serif;
@@ -478,7 +493,7 @@ button.secret-modal-close {
   line-height: 1.5;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   /* Let parent handle clicks - but ensure it's visible */
-  pointer-events: none;
+  pointer-events: none !important; /* Force no pointer events */
   z-index: 1;
   /* Make sure text doesn't block parent clicks */
   user-select: none;
