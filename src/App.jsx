@@ -32,10 +32,21 @@ function App() {
 
   // Detect mobile device for performance optimizations
   const isMobileRef = useRef(window.innerWidth <= 768 || 'ontouchstart' in window)
+  const mouseMoveRafRef = useRef(null)
   
   useEffect(() => {
     const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
+      // Throttle mouse moves on mobile
+      if (isMobileRef.current) {
+        if (mouseMoveRafRef.current) {
+          cancelAnimationFrame(mouseMoveRafRef.current)
+        }
+        mouseMoveRafRef.current = requestAnimationFrame(() => {
+          setMousePosition({ x: e.clientX, y: e.clientY })
+        })
+      } else {
+        setMousePosition({ x: e.clientX, y: e.clientY })
+      }
     }
 
     // Optimized touch handling - only prevent default when NOT on interactive elements
@@ -127,6 +138,9 @@ function App() {
       document.removeEventListener('touchend', handleTouchEnd)
       if (touchMoveRaf) {
         cancelAnimationFrame(touchMoveRaf)
+      }
+      if (mouseMoveRafRef.current) {
+        cancelAnimationFrame(mouseMoveRafRef.current)
       }
     }
   }, [documentOpen])
