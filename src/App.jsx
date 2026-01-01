@@ -30,65 +30,104 @@ function App() {
   const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_sipb9ui'
   const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'i0dQLe27a4mA6Or6D'
 
+  // Detect mobile device for performance optimizations
+  const isMobileRef = useRef(window.innerWidth <= 768 || 'ontouchstart' in window)
+  
   useEffect(() => {
     const handleMouseMove = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY })
     }
 
-    // Enhanced touch handling for finer control on mobile
+    // Optimized touch handling - only prevent default when NOT on interactive elements
     const handleTouchStart = (e) => {
-      if (!documentOpen && e.touches.length > 0) {
-        // Check if touch is on a button - allow button clicks to work
-        const target = e.target
-        if (target && (target.closest('button') || target.tagName === 'BUTTON')) {
-          // Don't prevent default for buttons - let them be clickable
-          return
-        }
+      if (documentOpen) return
+      
+      const target = e.target
+      // Check if touch is on any interactive element (button, input, textarea, a, etc.)
+      const isInteractive = target && (
+        target.closest('button') || 
+        target.closest('a') ||
+        target.closest('input') ||
+        target.closest('textarea') ||
+        target.closest('form') ||
+        target.tagName === 'BUTTON' ||
+        target.tagName === 'A' ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA'
+      )
+      
+      if (isInteractive) {
+        // Let interactive elements handle their own events
+        return
+      }
+      
+      if (e.touches.length > 0) {
         const touch = e.touches[0]
         setMousePosition({ x: touch.clientX, y: touch.clientY })
-        // Prevent scrolling when interacting with spotlight
+        // Only prevent default for non-interactive areas
         e.preventDefault()
       }
     }
 
+    // Throttle touch move for better performance
+    let touchMoveRaf = null
     const handleTouchMove = (e) => {
-      if (!documentOpen && e.touches.length > 0) {
-        // Check if touch is on a button - allow button clicks to work
-        const target = e.target
-        if (target && (target.closest('button') || target.tagName === 'BUTTON')) {
-          // Don't prevent default for buttons - let them be clickable
-          return
-        }
-        const touch = e.touches[0]
-        // Prevent scrolling when interacting with spotlight
+      if (documentOpen) return
+      
+      const target = e.target
+      const isInteractive = target && (
+        target.closest('button') || 
+        target.closest('a') ||
+        target.closest('input') ||
+        target.closest('textarea') ||
+        target.closest('form') ||
+        target.tagName === 'BUTTON' ||
+        target.tagName === 'A' ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA'
+      )
+      
+      if (isInteractive) {
+        return
+      }
+      
+      if (e.touches.length > 0) {
         e.preventDefault()
-        // Use requestAnimationFrame for smoother updates
-        requestAnimationFrame(() => {
+        
+        // Cancel previous frame
+        if (touchMoveRaf) {
+          cancelAnimationFrame(touchMoveRaf)
+        }
+        
+        // Throttle updates for better performance
+        touchMoveRaf = requestAnimationFrame(() => {
+          const touch = e.touches[0]
           setMousePosition({ x: touch.clientX, y: touch.clientY })
         })
       }
     }
 
     const handleTouchEnd = (e) => {
-      // Optional: handle touch end if needed
+      if (touchMoveRaf) {
+        cancelAnimationFrame(touchMoveRaf)
+        touchMoveRaf = null
+      }
     }
 
-    window.addEventListener('mousemove', handleMouseMove)
-    // Use document and body for better touch event capture on mobile
-    // Non-passive to allow preventDefault when document is not open
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    // Use passive: false only when needed, but be more selective
     document.addEventListener('touchstart', handleTouchStart, { passive: false })
     document.addEventListener('touchmove', handleTouchMove, { passive: false })
     document.addEventListener('touchend', handleTouchEnd, { passive: true })
-    // Also attach to body as fallback
-    document.body.addEventListener('touchstart', handleTouchStart, { passive: false })
-    document.body.addEventListener('touchmove', handleTouchMove, { passive: false })
+    
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('touchstart', handleTouchStart)
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
-      document.body.removeEventListener('touchstart', handleTouchStart)
-      document.body.removeEventListener('touchmove', handleTouchMove)
+      if (touchMoveRaf) {
+        cancelAnimationFrame(touchMoveRaf)
+      }
     }
   }, [documentOpen])
 
@@ -104,7 +143,7 @@ function App() {
     return () => window.removeEventListener('resize', updateSpotlightSize)
   }, [])
 
-  // Track revealed secrets and content with requestAnimationFrame for smooth performance
+  // Track revealed secrets and content with throttling for better mobile performance
   useEffect(() => {
     if (documentOpen) return
     if (mousePosition.x === 0 && mousePosition.y === 0) return // Skip initial position
@@ -114,49 +153,65 @@ function App() {
       cancelAnimationFrame(rafRef.current)
     }
 
-    // Use requestAnimationFrame for smooth, performant updates
+    // Throttle updates on mobile for better performance
+    const throttleDelay = isMobileRef.current ? 100 : 16 // ~60fps on desktop, ~10fps on mobile
+    
     rafRef.current = requestAnimationFrame(() => {
-      // Check which secrets are currently in spotlight
-      hiddenSecrets.forEach(secret => {
-        const secretXPx = (parseFloat(secret.x) / 100) * window.innerWidth
-        const secretYPx = (parseFloat(secret.y) / 100) * window.innerHeight
-        const distance = Math.sqrt(
-          Math.pow(mousePosition.x - secretXPx, 2) + 
-          Math.pow(mousePosition.y - secretYPx, 2)
-        )
-        if (distance < spotlightSize / 2) {
-          setRevealedSecrets(prev => {
-            if (prev.has(secret.id)) return prev // Already revealed
-            return new Set([...prev, secret.id])
-          })
-        }
-      })
-
-      // Check if main content is in spotlight - cache elements for performance
-      const contentElements = ['mystery-title', 'mystery-subtitle', 'mystery-description', 'mystery-location', 'mystery-citizenship']
-      contentElements.forEach(elementId => {
-        // Cache element lookups
-        if (!elementCacheRef.current[elementId]) {
-          elementCacheRef.current[elementId] = document.querySelector(`.spotlight-content .${elementId}`)
-        }
-        const element = elementCacheRef.current[elementId]
+      // Use setTimeout for throttling on mobile
+      const updateFn = () => {
+        const spotlightRadius = spotlightSize / 2
+        const spotlightRadiusSquared = spotlightRadius * spotlightRadius // Avoid sqrt in loop
         
-        if (element && !element.classList.contains('hidden')) {
-          const rect = element.getBoundingClientRect()
-          const elementCenterX = rect.left + rect.width / 2
-          const elementCenterY = rect.top + rect.height / 2
-          const distance = Math.sqrt(
-            Math.pow(mousePosition.x - elementCenterX, 2) + 
-            Math.pow(mousePosition.y - elementCenterY, 2)
-          )
-          if (distance < spotlightSize / 2) {
-            setRevealedAreas(prev => {
-              if (prev.has(elementId)) return prev // Already revealed
-              return new Set([...prev, elementId])
+        // Check which secrets are currently in spotlight
+        hiddenSecrets.forEach(secret => {
+          const secretXPx = (parseFloat(secret.x) / 100) * window.innerWidth
+          const secretYPx = (parseFloat(secret.y) / 100) * window.innerHeight
+          // Use squared distance to avoid expensive sqrt
+          const dx = mousePosition.x - secretXPx
+          const dy = mousePosition.y - secretYPx
+          const distanceSquared = dx * dx + dy * dy
+          
+          if (distanceSquared < spotlightRadiusSquared) {
+            setRevealedSecrets(prev => {
+              if (prev.has(secret.id)) return prev // Already revealed
+              return new Set([...prev, secret.id])
             })
           }
-        }
-      })
+        })
+
+        // Check if main content is in spotlight - cache elements for performance
+        const contentElements = ['mystery-title', 'mystery-subtitle', 'mystery-description', 'mystery-location', 'mystery-citizenship']
+        contentElements.forEach(elementId => {
+          // Cache element lookups
+          if (!elementCacheRef.current[elementId]) {
+            elementCacheRef.current[elementId] = document.querySelector(`.spotlight-content .${elementId}`)
+          }
+          const element = elementCacheRef.current[elementId]
+          
+          if (element && !element.classList.contains('hidden')) {
+            const rect = element.getBoundingClientRect()
+            const elementCenterX = rect.left + rect.width / 2
+            const elementCenterY = rect.top + rect.height / 2
+            // Use squared distance
+            const dx = mousePosition.x - elementCenterX
+            const dy = mousePosition.y - elementCenterY
+            const distanceSquared = dx * dx + dy * dy
+            
+            if (distanceSquared < spotlightRadiusSquared) {
+              setRevealedAreas(prev => {
+                if (prev.has(elementId)) return prev // Already revealed
+                return new Set([...prev, elementId])
+              })
+            }
+          }
+        })
+      }
+      
+      if (isMobileRef.current && throttleDelay > 16) {
+        setTimeout(updateFn, throttleDelay)
+      } else {
+        updateFn()
+      }
     })
 
     return () => {
@@ -164,7 +219,7 @@ function App() {
         cancelAnimationFrame(rafRef.current)
       }
     }
-  }, [mousePosition, documentOpen])
+  }, [mousePosition, documentOpen, spotlightSize])
 
   // Single essay content - thrilling narrative instead of resume
   const essayContent = [
@@ -582,9 +637,9 @@ function App() {
             </div>
           </div>
 
-          {/* Cursor glow effect with physics-like radiant particles */}
+          {/* Cursor glow effect with physics-like radiant particles - reduced on mobile */}
           <div 
-            className="cursor-glow"
+            className={`cursor-glow ${isMobileRef.current ? 'mobile-optimized' : ''}`}
             style={{
               left: `${mousePosition.x}px`,
               top: `${mousePosition.y}px`,
@@ -592,15 +647,19 @@ function App() {
             }}
           >
             <div className="glow-core"></div>
-            <div className="glow-ring ring-1"></div>
-            <div className="glow-ring ring-2"></div>
-            <div className="glow-ring ring-3"></div>
-            <div className="glow-particle particle-1"></div>
-            <div className="glow-particle particle-2"></div>
-            <div className="glow-particle particle-3"></div>
-            <div className="glow-particle particle-4"></div>
-            <div className="glow-particle particle-5"></div>
-            <div className="glow-particle particle-6"></div>
+            {!isMobileRef.current && (
+              <>
+                <div className="glow-ring ring-1"></div>
+                <div className="glow-ring ring-2"></div>
+                <div className="glow-ring ring-3"></div>
+                <div className="glow-particle particle-1"></div>
+                <div className="glow-particle particle-2"></div>
+                <div className="glow-particle particle-3"></div>
+                <div className="glow-particle particle-4"></div>
+                <div className="glow-particle particle-5"></div>
+                <div className="glow-particle particle-6"></div>
+              </>
+            )}
           </div>
         </>
       )}

@@ -66,8 +66,16 @@ html {
   height: 100%;
   pointer-events: none;
   z-index: 10;
-  will-change: background;
+  /* Only use will-change on desktop for better mobile performance */
+  contain: layout style paint;
   /* Remove transition for instant updates, no lag */
+}
+
+/* Optimize for mobile - reduce will-change usage */
+@media (max-width: 768px) {
+  .spotlight-overlay {
+    will-change: auto; /* Let browser decide on mobile */
+  }
 }
 
 /* Soccer ball cursor - more organic movement */
@@ -82,13 +90,21 @@ html {
   user-select: none;
   /* Slight organic rotation */
   transform: translate(-50%, -50%) rotate(2deg);
-  will-change: left, top;
+  contain: layout style paint;
 }
 
 /* Faster, more responsive movement on touch devices */
 @media (hover: none) and (pointer: coarse) {
   .soccer-ball-cursor {
     transition: left 0.03s linear, top 0.03s linear;
+    will-change: auto; /* Let browser optimize */
+  }
+}
+
+@media (max-width: 768px) {
+  .soccer-ball-cursor {
+    transition: left 0.05s linear, top 0.05s linear;
+    will-change: auto;
   }
 }
 
@@ -100,6 +116,35 @@ html {
   pointer-events: none;
   z-index: 10000; /* Above modal content but below cursor */
   transition: left 0.15s cubic-bezier(0.4, 0, 0.2, 1), top 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  contain: layout style paint;
+}
+
+/* Mobile optimization - disable heavy animations */
+.cursor-glow.mobile-optimized {
+  width: 150px;
+  height: 150px;
+}
+
+@media (max-width: 768px) {
+  .cursor-glow {
+    width: 150px;
+    height: 150px;
+    transition: left 0.1s linear, top 0.1s linear; /* Faster, simpler transition */
+  }
+  
+  /* Disable particle animations on mobile */
+  .cursor-glow .glow-particle,
+  .cursor-glow .glow-ring {
+    display: none !important;
+    animation: none !important;
+  }
+  
+  /* Simplify core glow on mobile */
+  .cursor-glow .glow-core {
+    animation: none;
+    width: 40px;
+    height: 40px;
+  }
 }
 
 .glow-core {
@@ -393,6 +438,19 @@ html {
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   /* Organic, slightly imperfect */
   transform: translateX(-50%) rotate(-0.5deg);
+  /* Ensure clickable */
+  pointer-events: auto;
+  z-index: 10002;
+}
+
+@media (max-width: 768px) {
+  .secret-text {
+    /* Reduce backdrop-filter on mobile */
+    backdrop-filter: blur(4px);
+    /* Larger touch target */
+    padding: 14px 18px;
+    min-width: 200px;
+  }
 }
 
 @keyframes pulse {
@@ -670,6 +728,20 @@ html {
   pointer-events: auto;
   -webkit-tap-highlight-color: rgba(180, 140, 255, 0.2);
   user-select: none;
+  /* Ensure button is always clickable */
+  position: relative;
+  z-index: 10001; /* Above everything */
+}
+
+@media (max-width: 768px) {
+  .open-button {
+    /* Reduce backdrop-filter on mobile for better performance */
+    backdrop-filter: blur(4px);
+    /* Larger touch target */
+    min-width: 48px;
+    min-height: 48px;
+    padding: 12px 20px;
+  }
 }
 
 .open-button:hover {
