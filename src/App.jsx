@@ -328,18 +328,38 @@ function App() {
                 <div
                   key={secret.id}
                     className="secret-item revealed permanent clickable"
-                    style={{ left: secret.x, top: secret.y, transform: 'translate(-50%, -50%)' }}
+                    style={{ 
+                      left: secret.x, 
+                      top: secret.y, 
+                      transform: 'translate(-50%, -50%)',
+                      zIndex: 10003
+                    }}
                     onClick={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
+                      console.log('Secret clicked:', secret.id)
                       handleSecretClick(secret)
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                     }}
                     onTouchStart={(e) => {
                       e.stopPropagation()
                     }}
                     onTouchEnd={(e) => {
-                      e.stopPropagation()
                       e.preventDefault()
+                      e.stopPropagation()
+                      console.log('Secret touched:', secret.id)
                       handleSecretClick(secret)
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleSecretClick(secret)
+                      }
                     }}
                   >
                       <div className="secret-text">{secret.text}</div>
@@ -379,18 +399,38 @@ function App() {
                 <div
                   key={`spotlight-${secret.id}`}
                   className="secret-item revealed clickable"
-                  style={{ left: secret.x, top: secret.y, transform: 'translate(-50%, -50%)' }}
+                  style={{ 
+                    left: secret.x, 
+                    top: secret.y, 
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 10003
+                  }}
                   onClick={(e) => {
+                    e.preventDefault()
                     e.stopPropagation()
+                    console.log('Secret clicked:', secret.id)
                     handleSecretClick(secret)
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
                   }}
                   onTouchStart={(e) => {
                     e.stopPropagation()
                   }}
                   onTouchEnd={(e) => {
-                    e.stopPropagation()
                     e.preventDefault()
+                    e.stopPropagation()
+                    console.log('Secret touched:', secret.id)
                     handleSecretClick(secret)
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleSecretClick(secret)
+                    }
                   }}
                 >
                     <div className="secret-text">{secret.text}</div>
