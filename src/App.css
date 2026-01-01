@@ -72,9 +72,25 @@ html {
 }
 
 /* Ensure all interactive elements are above spotlight */
-button, a, input, textarea, form, .secret-item.clickable {
+/* Don't override position for fixed/absolute positioned elements */
+a, input, textarea, form {
   position: relative;
   z-index: 10000; /* Above spotlight overlay */
+  pointer-events: auto !important;
+}
+
+/* Buttons that are already positioned should keep their position */
+button.open-button,
+button.explore-button,
+button.form-submit-button,
+button.secret-modal-close {
+  z-index: 10001 !important; /* Above spotlight overlay */
+  pointer-events: auto !important;
+}
+
+/* Secret items need high z-index but keep absolute positioning */
+.secret-item.clickable {
+  z-index: 10002 !important; /* Above spotlight overlay */
   pointer-events: auto !important;
 }
 
@@ -396,6 +412,8 @@ button, a, input, textarea, form, .secret-item.clickable {
   z-index: 6;
   pointer-events: none;
   min-width: 200px;
+  /* Ensure proper stacking context */
+  isolation: isolate;
 }
 
 .secret-item.revealed {
@@ -413,6 +431,8 @@ button, a, input, textarea, form, .secret-item.clickable {
 .secret-item.revealed.clickable {
   cursor: pointer;
   pointer-events: auto;
+  z-index: 10002 !important; /* Above spotlight overlay (z-index: 10) */
+  position: absolute; /* Ensure absolute positioning is maintained */
 }
 
 .secret-item.revealed.clickable:hover .secret-text {
@@ -452,9 +472,9 @@ button, a, input, textarea, form, .secret-item.clickable {
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   /* Organic, slightly imperfect */
   transform: translateX(-50%) rotate(-0.5deg);
-  /* Ensure clickable */
-  pointer-events: auto;
-  z-index: 10002;
+  /* Ensure clickable - inherit from parent */
+  pointer-events: inherit;
+  z-index: 1; /* Relative to parent secret-item */
 }
 
 @media (max-width: 768px) {
@@ -726,9 +746,11 @@ button, a, input, textarea, form, .secret-item.clickable {
 
 /* Open button - more authentic styling */
 .open-button {
-  position: fixed;
-  bottom: 40px;
-  right: 40px;
+  position: fixed !important;
+  bottom: 40px !important;
+  right: 40px !important;
+  top: auto !important;
+  left: auto !important;
   padding: 10px 24px;
   background: rgba(20, 20, 20, 0.6);
   border: 1px solid rgba(180, 140, 255, 0.15);
@@ -737,7 +759,6 @@ button, a, input, textarea, form, .secret-item.clickable {
   font-size: 0.85rem;
   letter-spacing: 0.12em;
   cursor: pointer;
-  z-index: 100;
   transition: all 0.2s ease;
   backdrop-filter: blur(8px);
   text-transform: lowercase;
@@ -749,7 +770,7 @@ button, a, input, textarea, form, .secret-item.clickable {
   -webkit-tap-highlight-color: rgba(180, 140, 255, 0.2);
   user-select: none;
   /* Ensure button is always clickable */
-  z-index: 10001; /* Above everything */
+  z-index: 10001 !important; /* Above everything */
 }
 
 @media (max-width: 768px) {

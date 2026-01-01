@@ -566,13 +566,19 @@ function App() {
               return (
                 <div
                   key={secret.id}
-                    className={`secret-item ${isPermanentlyRevealed ? 'revealed permanent' : ''} ${isPermanentlyRevealed ? 'clickable' : ''}`}
+                    className={`secret-item ${isPermanentlyRevealed ? 'revealed permanent clickable' : ''}`}
                     style={{
                       left: secret.x,
                       top: secret.y,
-                      transform: 'translate(-50%, -50%)'
+                      transform: 'translate(-50%, -50%)',
+                      zIndex: isPermanentlyRevealed ? 10002 : 6
                     }}
                     onClick={() => isPermanentlyRevealed && handleSecretClick(secret)}
+                    onTouchStart={(e) => {
+                      if (isPermanentlyRevealed) {
+                        e.stopPropagation()
+                      }
+                    }}
                   >
                     {isPermanentlyRevealed && (
                       <div className="secret-text">{secret.text}</div>
@@ -618,9 +624,15 @@ function App() {
                   style={{
                     left: secret.x,
                     top: secret.y,
-                    transform: 'translate(-50%, -50%)'
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: currentlyRevealed ? 10002 : 6
                   }}
                   onClick={() => currentlyRevealed && handleSecretClick(secret)}
+                  onTouchStart={(e) => {
+                    if (currentlyRevealed) {
+                      e.stopPropagation()
+                    }
+                  }}
                 >
                   {currentlyRevealed && (
                     <div className="secret-text">{secret.text}</div>
