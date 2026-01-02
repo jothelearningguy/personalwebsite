@@ -26,7 +26,15 @@ html {
   background-image: 
     radial-gradient(circle at 20% 50%, rgba(120, 80, 200, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(200, 120, 80, 0.02) 0%, transparent 50%);
-  /* Enable touch tracking on mobile - prevent scrolling when spotlight is active */
+}
+
+/* Desktop-specific touch action */
+.app.desktop {
+  touch-action: auto;
+}
+
+/* Mobile-specific touch action */
+.app.mobile {
   touch-action: manipulation;
 }
 
@@ -64,46 +72,77 @@ html {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none !important; /* Never block interactions - force it */
+  pointer-events: none !important;
   z-index: 10;
-  /* Only use will-change on desktop for better mobile performance */
   contain: layout style paint;
-  /* Remove transition for instant updates, no lag */
-  /* Ensure it never captures events */
+}
+
+/* Desktop optimizations */
+.app.desktop .spotlight-overlay {
+  will-change: background;
+}
+
+/* Mobile optimizations */
+.app.mobile .spotlight-overlay {
+  will-change: auto;
   touch-action: none;
 }
 
-/* Interactive elements - ensure they're above spotlight (z-index: 10) */
+/* Base interactive elements */
 button, a, input, textarea, form {
   position: relative;
   z-index: 10000;
   pointer-events: auto !important;
 }
 
-/* Fixed/absolute positioned buttons */
+/* All buttons - ensure visibility and proper stacking */
 button.open-button,
 button.explore-button,
 button.form-submit-button,
 button.secret-modal-close {
-  z-index: 10001 !important;
+  z-index: 10005 !important;
   pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
 }
 
-/* Secret items - must be above spotlight */
+/* Desktop button optimizations */
+.app.desktop button {
+  cursor: pointer;
+}
+
+/* Mobile button optimizations */
+.app.mobile button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(180, 140, 255, 0.2);
+}
+
+/* Secret items - base styles */
 .secret-item.clickable,
 .secret-item.revealed.clickable,
 .secret-item.revealed.permanent.clickable {
-  z-index: 10003 !important; /* Higher than everything */
+  z-index: 10003 !important;
   pointer-events: auto !important;
-  cursor: pointer !important;
-  /* Ensure touch events work - manipulation allows single-finger panning and zooming */
-  touch-action: auto !important; /* Changed from manipulation to auto for better touch handling */
-  -webkit-tap-highlight-color: rgba(180, 140, 255, 0.2);
-  /* Make sure it's interactive */
   user-select: none;
-  /* Ensure it's above all other layers */
   position: relative;
-  /* Ensure it captures touch events */
+}
+
+/* Desktop secret item styles */
+.app.desktop .secret-item.clickable,
+.app.desktop .secret-item.revealed.clickable,
+.app.desktop .secret-item.revealed.permanent.clickable {
+  cursor: pointer;
+  touch-action: auto;
+}
+
+/* Mobile secret item styles */
+.app.mobile .secret-item.clickable,
+.app.mobile .secret-item.revealed.clickable,
+.app.mobile .secret-item.revealed.permanent.clickable {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(180, 140, 255, 0.2);
   -webkit-touch-callout: none;
 }
 
@@ -346,15 +385,11 @@ button.secret-modal-close {
   pointer-events: auto !important;
 }
 
-/* Hide unrevealed items in permanent layer */
-.permanent-reveal-layer .secret-item:not(.permanent) {
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
+/* All secrets in permanent layer should be visible */
 .permanent-reveal-layer .secret-item.permanent {
   opacity: 1 !important;
   visibility: visible !important;
+  display: block !important;
 }
 
 .permanent-reveal-layer .secret-item.permanent .secret-text {
@@ -432,9 +467,42 @@ button.secret-modal-close {
   z-index: 6;
   pointer-events: none;
   min-width: 200px;
-  min-height: 50px; /* Ensure minimum clickable area */
-  /* Ensure proper stacking and interaction */
+  min-height: 50px;
   isolation: isolate;
+}
+
+/* Hidden secrets - visible but subtle, clickable to reveal */
+.secret-item.hidden-secret {
+  opacity: 0.3;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 10002;
+}
+
+.secret-item.hidden-secret::before {
+  content: '?';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(180, 140, 255, 0.2);
+  border: 2px solid rgba(180, 140, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.secret-item.hidden-secret:hover::before {
+  background: rgba(180, 140, 255, 0.3);
+  border-color: rgba(180, 140, 255, 0.6);
+  transform: translate(-50%, -50%) scale(1.1);
 }
 
 /* Make clickable secret items have larger hit area */
@@ -447,6 +515,11 @@ button.secret-modal-close {
 .secret-item.revealed {
   opacity: 1;
   animation: pulse 1s ease-in-out infinite;
+}
+
+/* Disable pulse on mobile for performance */
+.app.mobile .secret-item.revealed {
+  animation: none;
 }
 
 /* Disable pulse animation on mobile for better performance */
@@ -790,11 +863,14 @@ button.secret-modal-close {
   font-weight: 400;
   /* Ensure button is touchable on mobile */
   touch-action: manipulation;
-  pointer-events: auto;
+  pointer-events: auto !important;
   -webkit-tap-highlight-color: rgba(180, 140, 255, 0.2);
   user-select: none;
-  /* Ensure button is always clickable */
-  z-index: 10001 !important; /* Above everything */
+  /* Ensure button is always visible and clickable */
+  z-index: 10005 !important; /* Above everything including secret items */
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
 }
 
 @media (max-width: 768px) {
@@ -1173,11 +1249,14 @@ button.secret-modal-close {
   transition: all 0.3s ease;
   text-transform: lowercase;
   backdrop-filter: blur(5px);
-  /* Ensure button is always clickable */
+  /* Ensure button is always visible and clickable */
   position: relative;
-  z-index: 10003;
+  z-index: 10005 !important;
   touch-action: manipulation;
-  pointer-events: auto;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
 }
 
 @media (max-width: 768px) {
@@ -1282,11 +1361,14 @@ button.secret-modal-close {
   backdrop-filter: blur(5px);
   align-self: center;
   margin-top: 0.5rem;
-  /* Ensure button is always clickable */
+  /* Ensure button is always visible and clickable */
   position: relative;
-  z-index: 10004;
+  z-index: 10005 !important;
   touch-action: manipulation;
-  pointer-events: auto;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
 }
 
 @media (max-width: 768px) {

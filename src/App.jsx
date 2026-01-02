@@ -100,76 +100,80 @@ const hiddenSecrets = [
   { id: 10, x: '90%', y: '80%', text: 'Founding team for Say Word FC', image: '/assets/images/saywordfc.jpg', description: 'I was part of the founding team for Say Word FC, which went from a local 7v7 team to internationally recognized, playing in global tournaments such as TST (The Soccer Tournament) against the likes of Sergio Aguero, Luis Nani, and Heather O\'Reilly on ESPN. This journey taught me about building teams, creating culture, establishing vision, and turning an idea into a reality. The lessons learned from founding and building Say Word FC—from recruiting players to establishing team identity to competing on the world stage—directly informed my approach to building companies and leading teams.' },
 ]
 
+// Device detection utility
+const isMobileDevice = () => {
+  return window.innerWidth <= 768 || ('ontouchstart' in window && window.matchMedia('(pointer: coarse)').matches)
+}
+
 function App() {
   // State
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [revealedAreas, setRevealedAreas] = useState(new Set())
-  const [revealedSecrets, setRevealedSecrets] = useState(new Set())
+  // Initialize with all secrets revealed for visibility
+  const [revealedSecrets, setRevealedSecrets] = useState(new Set(hiddenSecrets.map(s => s.id)))
   const [documentOpen, setDocumentOpen] = useState(false)
   const [exploreClicked, setExploreClicked] = useState(false)
   const [formData, setFormData] = useState({ name: '', email: '', message: '' })
   const [formStatus, setFormStatus] = useState({ loading: false, success: false, error: '' })
   const [selectedSecret, setSelectedSecret] = useState(null)
   const [spotlightSize, setSpotlightSize] = useState(200)
+  const [isMobile, setIsMobile] = useState(isMobileDevice())
 
   // Refs for performance
   const mousePosRef = useRef({ x: 0, y: 0 })
   const rafRef = useRef(null)
   const elementCacheRef = useRef({})
-  const isMobileRef = useRef(window.innerWidth <= 768 || 'ontouchstart' in window)
-  const spotlightRadiusSquaredRef = useRef(10000) // spotlightSize/2 squared
+  const spotlightRadiusSquaredRef = useRef(10000)
+  const touchMoveRafRef = useRef(null)
   
-  // Update spotlight size on resize
+  // Update device type and spotlight size on resize
   useEffect(() => {
-    const updateSize = () => {
-      const size = window.innerWidth <= 768 ? 150 : 200
+    const updateDevice = () => {
+      const mobile = isMobileDevice()
+      setIsMobile(mobile)
+      const size = mobile ? 150 : 200
       setSpotlightSize(size)
       spotlightRadiusSquaredRef.current = (size / 2) ** 2
-      isMobileRef.current = window.innerWidth <= 768 || 'ontouchstart' in window
     }
-    updateSize()
-    window.addEventListener('resize', updateSize, { passive: true })
-    return () => window.removeEventListener('resize', updateSize)
+    updateDevice()
+    window.addEventListener('resize', updateDevice, { passive: true })
+    return () => window.removeEventListener('resize', updateDevice)
   }, [])
 
-  // Optimized mouse/touch position update - use ref to avoid re-renders
+  // Optimized mouse/touch position update
   const updateMousePosition = useCallback((x, y) => {
     mousePosRef.current = { x, y }
     setMousePosition({ x, y })
   }, [])
 
-  // Check if element is interactive
+  // Check if element is interactive - desktop optimized
   const isInteractiveElement = useCallback((target) => {
     if (!target) return false
-    // Check for secret items (both clickable class and revealed state)
-    if (target.closest('.secret-item.clickable') || 
-        target.closest('.secret-item.revealed') ||
-        target.classList?.contains('secret-item') ||
-        target.closest('.secret-text')) {
-      return true
-    }
-    return target.closest('button') || target.closest('a') || target.closest('input') || 
-           target.closest('textarea') || target.closest('form') ||
+    return target.closest('button') || 
+           target.closest('a') || 
+           target.closest('input') || 
+           target.closest('textarea') || 
+           target.closest('form') ||
+           target.closest('.secret-item.clickable') ||
            ['BUTTON', 'A', 'INPUT', 'TEXTAREA'].includes(target.tagName)
   }, [])
 
-  // Mouse move handler - optimized
+  // Mouse move handler - desktop only
   const handleMouseMove = useCallback((e) => {
     if (documentOpen) return
     updateMousePosition(e.clientX, e.clientY)
   }, [documentOpen, updateMousePosition])
 
-  // Touch handlers - optimized for mobile
+  // Touch handlers - mobile only, properly isolated
   const handleTouchStart = useCallback((e) => {
+    if (documentOpen) return
+    
     const target = e.target
-    // Check if touching a secret item or any interactive element FIRST
-    if (target.closest('.secret-item.clickable') || 
-        target.closest('.secret-item.revealed') ||
-        isInteractiveElement(target)) {
-      // Don't prevent default - let the element handle its own touch events
+    // Allow interactive elements to handle their own events
+    if (isInteractiveElement(target) || target.closest('.secret-item')) {
       return
     }
-    if (documentOpen) return
+    
     if (e.touches.length > 0) {
       const touch = e.touches[0]
       updateMousePosition(touch.clientX, touch.clientY)
@@ -177,17 +181,15 @@ function App() {
     }
   }, [documentOpen, isInteractiveElement, updateMousePosition])
 
-  const touchMoveRafRef = useRef(null)
   const handleTouchMove = useCallback((e) => {
+    if (documentOpen) return
+    
     const target = e.target
-    // Check if touching a secret item or any interactive element FIRST
-    if (target.closest('.secret-item.clickable') || 
-        target.closest('.secret-item.revealed') ||
-        isInteractiveElement(target)) {
-      // Don't prevent default - let the element handle its own touch events
+    // Allow interactive elements to handle their own events
+    if (isInteractiveElement(target) || target.closest('.secret-item')) {
       return
     }
-    if (documentOpen) return
+    
     if (e.touches.length > 0) {
       e.preventDefault()
       if (touchMoveRafRef.current) cancelAnimationFrame(touchMoveRafRef.current)
@@ -198,47 +200,48 @@ function App() {
     }
   }, [documentOpen, isInteractiveElement, updateMousePosition])
 
-  // Event listeners setup - use capture phase for better control
+  // Event listeners - separate mobile/desktop handlers
   useEffect(() => {
+    // Always attach mouse handler for desktop
     window.addEventListener('mousemove', handleMouseMove, { passive: true })
-    // Use capture phase to check before other handlers
-    document.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true })
-    document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
+    
+    // Only attach touch handlers on mobile devices
+    if (isMobile) {
+      document.addEventListener('touchstart', handleTouchStart, { passive: false })
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    }
+    
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('touchstart', handleTouchStart, { capture: true })
-      document.removeEventListener('touchmove', handleTouchMove, { capture: true })
+      if (isMobile) {
+        document.removeEventListener('touchstart', handleTouchStart)
+        document.removeEventListener('touchmove', handleTouchMove)
+      }
       if (touchMoveRafRef.current) cancelAnimationFrame(touchMoveRafRef.current)
     }
-  }, [handleMouseMove, handleTouchStart, handleTouchMove])
+  }, [handleMouseMove, handleTouchStart, handleTouchMove, isMobile])
 
-  // Optimized spotlight calculation - batched updates
+  // Optimized spotlight calculation - only for content elements now (secrets are always visible)
+  const lastUpdateRef = useRef(0)
+  const throttleDelay = isMobile ? 150 : 50 // More aggressive throttling
+  
   useEffect(() => {
-    if (documentOpen || mousePosition.x === 0 && mousePosition.y === 0) return
+    if (documentOpen || (mousePosition.x === 0 && mousePosition.y === 0)) return
+
+    const now = Date.now()
+    if (now - lastUpdateRef.current < throttleDelay) {
+      return // Skip if too soon
+    }
 
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
 
     rafRef.current = requestAnimationFrame(() => {
       const { x, y } = mousePosRef.current
       const radiusSquared = spotlightRadiusSquaredRef.current
-      const newRevealedSecrets = new Set(revealedSecrets)
       const newRevealedAreas = new Set(revealedAreas)
       let hasChanges = false
 
-      // Check secrets
-      hiddenSecrets.forEach(secret => {
-        if (newRevealedSecrets.has(secret.id)) return
-        const secretXPx = (parseFloat(secret.x) / 100) * window.innerWidth
-        const secretYPx = (parseFloat(secret.y) / 100) * window.innerHeight
-        const dx = x - secretXPx
-        const dy = y - secretYPx
-        if (dx * dx + dy * dy < radiusSquared) {
-          newRevealedSecrets.add(secret.id)
-          hasChanges = true
-        }
-      })
-
-      // Check content elements - cache DOM queries
+      // Only check content elements - secrets are always visible now
       CONTENT_ELEMENTS.forEach(elementId => {
         if (newRevealedAreas.has(elementId)) return
         if (!elementCacheRef.current[elementId]) {
@@ -249,7 +252,7 @@ function App() {
           const rect = element.getBoundingClientRect()
           const dx = x - (rect.left + rect.width / 2)
           const dy = y - (rect.top + rect.height / 2)
-          if (dx * dx + dy * dy < radiusSquared) {
+          if (dx * dx + dy * dy < radiusSquared * 1.5) {
             newRevealedAreas.add(elementId)
             hasChanges = true
           }
@@ -258,7 +261,7 @@ function App() {
 
       // Batch state updates
       if (hasChanges) {
-        setRevealedSecrets(newRevealedSecrets)
+        lastUpdateRef.current = now
         setRevealedAreas(newRevealedAreas)
       }
     })
@@ -266,7 +269,7 @@ function App() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [mousePosition, documentOpen, revealedSecrets, revealedAreas])
+  }, [mousePosition, documentOpen, revealedAreas, isMobile])
 
   // Clear cache when document opens
   useEffect(() => {
@@ -315,19 +318,44 @@ function App() {
     }
   }, [formData])
 
-  // Memoized spotlight style
-  const spotlightStyle = useMemo(() => ({
-    background: `radial-gradient(circle ${spotlightSize}px at ${mousePosition.x}px ${mousePosition.y}px, transparent 0%, transparent 40%, rgba(0,0,0,0.95) 70%, rgba(0,0,0,1) 100%)`
-  }), [mousePosition.x, mousePosition.y, spotlightSize])
+  // Memoized styles - throttle updates for performance
+  const spotlightStyleRef = useRef({})
+  const lastStyleUpdate = useRef(0)
+  
+  const spotlightStyle = useMemo(() => {
+    const now = Date.now()
+    // Throttle style updates to reduce repaints
+    if (now - lastStyleUpdate.current < (isMobile ? 50 : 16)) {
+      return spotlightStyleRef.current
+    }
+    lastStyleUpdate.current = now
+    const style = {
+      background: `radial-gradient(circle ${spotlightSize}px at ${mousePosition.x}px ${mousePosition.y}px, transparent 0%, transparent 40%, rgba(0,0,0,0.95) 70%, rgba(0,0,0,1) 100%)`
+    }
+    spotlightStyleRef.current = style
+    return style
+  }, [mousePosition.x, mousePosition.y, spotlightSize, isMobile])
 
-  // Memoized cursor style - use transform for better performance
   const cursorStyle = useMemo(() => ({
     transform: `translate(${mousePosition.x}px, ${mousePosition.y}px) translate(-50%, -50%) rotate(2deg)`
   }), [mousePosition.x, mousePosition.y])
 
+  // Secret click handler - unified for mobile/desktop
+  const handleSecretInteraction = useCallback((secret, e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    handleSecretClick(secret)
+  }, [handleSecretClick])
+
+  // Touch handler for secrets - mobile only
+  const handleSecretTouch = useCallback((secret, e) => {
+    e.stopPropagation()
+    handleSecretClick(secret)
+  }, [handleSecretClick])
+
   return (
-    <div className={`app ${documentOpen ? 'document-open' : ''}`}>
-      {/* Cursor - positioned with transform for better performance */}
+    <div className={`app ${documentOpen ? 'document-open' : ''} ${isMobile ? 'mobile' : 'desktop'}`}>
+      {/* Cursor */}
       <div className="soccer-ball-cursor" style={cursorStyle}>⚽</div>
 
       {!documentOpen && (
@@ -335,58 +363,33 @@ function App() {
           {/* Spotlight overlay */}
           <div className="spotlight-overlay" style={spotlightStyle} />
 
-          {/* Permanently revealed layer */}
+          {/* All secrets layer - all visible and clickable */}
           <div className="permanent-reveal-layer">
-          <div className="secrets-layer">
-            {hiddenSecrets.map(secret => {
-                const isRevealed = revealedSecrets.has(secret.id)
-                if (!isRevealed) return null
-              return (
+            <div className="secrets-layer">
+              {hiddenSecrets.map(secret => (
                 <div
                   key={secret.id}
-                    className="secret-item revealed permanent clickable"
-                    style={{ 
-                      left: secret.x, 
-                      top: secret.y, 
-                      transform: 'translate(-50%, -50%)',
-                      zIndex: 10003
-                    }}
-                    onClick={(e) => {
+                  className="secret-item revealed permanent clickable"
+                  style={{ 
+                    left: secret.x, 
+                    top: secret.y, 
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 10003
+                  }}
+                  onClick={(e) => handleSecretInteraction(secret, e)}
+                  onTouchEnd={isMobile ? (e) => handleSecretTouch(secret, e) : undefined}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      e.stopPropagation()
-                      console.log('Secret clicked (desktop):', secret.id)
                       handleSecretClick(secret)
-                    }}
-                    onTouchStart={(e) => {
-                      // Stop propagation to prevent document handlers from interfering
-                      e.stopPropagation()
-                      console.log('Secret touch start:', secret.id)
-                    }}
-                    onTouchEnd={(e) => {
-                      // Prevent default to avoid double-firing, but allow the click
-                      e.stopPropagation()
-                      console.log('Secret touch end:', secret.id)
-                      // Use setTimeout to ensure click fires after touch
-                      setTimeout(() => {
-                        handleSecretClick(secret)
-                      }, 0)
-                    }}
-                    onTouchCancel={(e) => {
-                      e.stopPropagation()
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        handleSecretClick(secret)
-                      }
-                    }}
-                  >
-                      <div className="secret-text">{secret.text}</div>
-                  </div>
-                )
-              })}
+                    }
+                  }}
+                >
+                  <div className="secret-text">{secret.text}</div>
+                </div>
+              ))}
             </div>
             <div className="main-content permanent-content">
               <div className="content-wrapper permanent-content-wrapper">
@@ -405,64 +408,7 @@ function App() {
             </div>
           </div>
 
-          {/* Spotlight discovery layer */}
-          <div className="secrets-layer">
-            {hiddenSecrets.map(secret => {
-              if (revealedSecrets.has(secret.id)) return null
-              const secretXPx = (parseFloat(secret.x) / 100) * window.innerWidth
-              const secretYPx = (parseFloat(secret.y) / 100) * window.innerHeight
-              const dx = mousePosition.x - secretXPx
-              const dy = mousePosition.y - secretYPx
-              const isRevealed = dx * dx + dy * dy < spotlightRadiusSquaredRef.current
-              
-              if (!isRevealed) return null
-              return (
-                <div
-                  key={`spotlight-${secret.id}`}
-                  className="secret-item revealed clickable"
-                  style={{ 
-                    left: secret.x, 
-                    top: secret.y, 
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 10003
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    console.log('Secret clicked (desktop):', secret.id)
-                    handleSecretClick(secret)
-                  }}
-                  onTouchStart={(e) => {
-                    // Stop propagation to prevent document handlers from interfering
-                    e.stopPropagation()
-                    console.log('Secret touch start:', secret.id)
-                  }}
-                  onTouchEnd={(e) => {
-                    // Prevent default to avoid double-firing, but allow the click
-                    e.stopPropagation()
-                    console.log('Secret touch end:', secret.id)
-                    // Use setTimeout to ensure click fires after touch
-                    setTimeout(() => {
-                      handleSecretClick(secret)
-                    }, 0)
-                  }}
-                  onTouchCancel={(e) => {
-                    e.stopPropagation()
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      handleSecretClick(secret)
-                    }
-                  }}
-                >
-                    <div className="secret-text">{secret.text}</div>
-                </div>
-              )
-            })}
-          </div>
+          {/* Spotlight discovery layer - removed, all secrets now in permanent layer */}
 
           {/* Main content for discovery */}
           <div className="main-content spotlight-content">
@@ -475,8 +421,8 @@ function App() {
             </div>
           </div>
 
-          {/* Cursor glow - simplified on mobile */}
-          {!isMobileRef.current && (
+          {/* Cursor glow - desktop only */}
+          {!isMobile && (
             <div className="cursor-glow" style={{ transform: `translate(${mousePosition.x}px, ${mousePosition.y}px) translate(-50%, -50%)` }}>
               <div className="glow-core"></div>
             </div>
