@@ -552,6 +552,7 @@ function Home() {
       })
       
       // Update pill DOM elements with spring-follow positions
+      // CRITICAL: This is the ONLY place that should update pill transforms
       if (pills && Array.isArray(pills)) {
         pills.forEach(pill => {
           const element = bubbleElementsRef.current[pill.id]
@@ -559,6 +560,7 @@ function Home() {
             // Calculate rotation based on velocity for "string" effect
             const angle = Math.atan2(pill.vy, pill.vx) * (180 / Math.PI)
             
+            // CRITICAL: Spring physics owns transform - no other code should set it
             // Use transform with rotation for "mirror on a string" look
             element.style.transform = `translate(${pill.x}px, ${pill.y}px) translate(-50%, -50%) rotate(${angle * 0.08}deg)`
           }
@@ -797,31 +799,36 @@ function Home() {
             </div>
           )}
 
-          {/* All secrets layer - ALL 10 BUBBLES - OUTSIDE permanent-reveal-layer */}
+          {/* Experience pills layer - pills tethered to bubbles via spring physics */}
           {showBubbles && (
-            <div className={`secrets-layer permanent-secrets ${!showBubbles ? 'fade-out' : ''}`}>
+            <div 
+              className={`secrets-layer permanent-secrets experience-layer ${!showBubbles ? 'fade-out' : ''}`}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 5,
+                pointerEvents: 'none', // Layer doesn't catch clicks
+                overflow: 'visible' // Allow pills to render off-screen
+              }}
+            >
               {hiddenSecrets.map(secret => {
                 // Pills are positioned by spring-follow physics in the animation loop
-                // Initial position will be set by spring system
-                const pill = pillPositionsRef.current?.find(p => p?.id === secret.id)
-                const initialX = pill?.x ?? window.innerWidth / 2
-                const initialY = pill?.y ?? window.innerHeight / 2
-                
+                // CRITICAL: Don't set initial transform here - spring physics owns transform
                 return (
                   <div
                     key={`secret-${secret.id}`}
                     ref={el => bubbleElementsRef.current[secret.id] = el}
-                    className="secret-item revealed permanent clickable"
+                    className="secret-item revealed permanent clickable experience-pill"
                     style={{ 
                       position: 'absolute',
-                      left: '50%', // Use center as base, transform handles position (updated by spring physics)
+                      left: '50%', // Use center as base, transform handles position (updated ONLY by spring physics)
                       top: '50%',
-                      transform: `translate(${initialX}px, ${initialY}px) translate(-50%, -50%)`,
+                      transform: 'translate(-50%, -50%)', // Initial - spring physics will update this
                       zIndex: 10010,
                       opacity: showBubbles ? 1 : 0,
                       visibility: showBubbles ? 'visible' : 'hidden',
                       display: showBubbles ? 'block' : 'none',
-                      pointerEvents: showBubbles ? 'auto' : 'none',
+                      pointerEvents: 'auto', // Pills DO catch clicks
                       minWidth: '90px',
                       minHeight: '25px',
                       willChange: 'transform',
