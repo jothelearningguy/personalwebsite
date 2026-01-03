@@ -220,4 +220,4 @@ function Metaballs({ bubbles, showBubbles }) {
   return <div ref={mountRef} className="metaballs-container" />
 }
 
-export default memo(Metaballs)
+export default Metaballs
