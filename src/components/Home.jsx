@@ -159,6 +159,12 @@ function Home() {
   const bubblePositionsRef = useRef(null)
   const pillPositionsRef = useRef([]) // Spring-follow state for pills
   
+  // Viewport object - single source of truth for window dimensions
+  const viewportRef = useRef({ w: window.innerWidth, h: window.innerHeight })
+  
+  // Delta time tracking for stable physics
+  const lastFrameTimeRef = useRef(performance.now())
+  
   // Timer to hide bubbles and show quotes after 8 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -269,19 +275,31 @@ function Home() {
     }
     
     let frameCount = 0
-    const updateBubbles = () => {
+    let lastTime = performance.now()
+    
+    const updateBubbles = (now) => {
       const positions = bubblePositionsRef.current
       if (!positions || !Array.isArray(positions) || positions.length === 0) {
         // Keep animation loop running even if positions aren't ready yet
+        lastTime = now
         animationFrameRef.current = requestAnimationFrame(updateBubbles)
         return
       }
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now()
+        lastTime = now
         // Continue animation loop
         animationFrameRef.current = requestAnimationFrame(updateBubbles)
         return
       }
+      
+      // Calculate delta time (normalized to 60fps units) and clamp it
+      let dt = (now - lastTime) / 16.666 // normalize to 60fps units
+      lastTime = now
+      
+      // CRITICAL: Clamp dt to prevent explosions when DevTools opens/closes
+      dt = Math.max(0.5, Math.min(dt, 1.5))
+      
       const currentTime = Date.now()
       const elapsed = currentTime - startTimeRef.current
       let allArrived = true
@@ -384,26 +402,37 @@ function Home() {
         if (bubble.hasArrived) {
           let { x, y, vx, vy } = bubble
           
-          // CRITICAL FIX: Use physics-based position updates, not Bezier tweening
-          // Update position based on velocity (physics-driven)
-          x += vx
-          y += vy
+          // CRITICAL: Check for NaN values
+          if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(vx) || !Number.isFinite(vy)) {
+            console.error('BUBBLE NaN detected:', { id: bubble.id, x, y, vx, vy })
+            // Reset to safe values
+            x = baseX
+            y = baseY
+            vx = 0
+            vy = 0
+          }
+          
+          // CRITICAL FIX: Use physics-based position updates with dt
+          // Update position based on velocity (physics-driven) - multiply by dt
+          x += vx * dt
+          y += vy * dt
           
           // Gentle drift back toward base position (lava lamp effect) - ENHANCED
           const driftX = (baseX - x) * 0.015 // Increased from 0.01
           const driftY = (baseY - y) * 0.015
           // Add more random drift for lava lamp effect
           if (frameCount % 2 === 0) { // More frequent random drift
-            vx += driftX + (Math.random() - 0.5) * 0.04 // Increased from 0.02
-            vy += driftY + (Math.random() - 0.5) * 0.04
+            vx += (driftX + (Math.random() - 0.5) * 0.04) * dt // Multiply by dt
+            vy += (driftY + (Math.random() - 0.5) * 0.04) * dt
           } else {
-            vx += driftX
-            vy += driftY
+            vx += driftX * dt
+            vy += driftY * dt
           }
           
-          // Less damping for more movement
-          vx *= 0.985 // Reduced from 0.98
-          vy *= 0.985
+          // Less damping for more movement - use dt-aware damping
+          const damp = 0.985
+          vx *= Math.pow(damp, dt)
+          vy *= Math.pow(damp, dt)
           
           // Boundary constraints (keep bubbles on screen)
           if (x < 5) {
@@ -490,16 +519,27 @@ function Home() {
           const pill = pills.find(p => p?.id === bubble?.id) || pills[idx]
           if (!pill || !bubble) return
           
+          // CRITICAL: Check for NaN values
+          if (!Number.isFinite(pill.x) || !Number.isFinite(pill.y) || !Number.isFinite(pill.vx) || !Number.isFinite(pill.vy)) {
+            console.error('PILL NaN detected:', { id: pill.id, x: pill.x, y: pill.y, vx: pill.vx, vy: pill.vy })
+            // Reset to safe values based on bubble position
+            const viewport = viewportRef.current
+            pill.x = (bubble.x / 100) * viewport.w
+            pill.y = (bubble.y / 100) * viewport.h
+            pill.vx = 0
+            pill.vy = 0
+          }
+          
           // Calculate anchor point (bubble position + velocity-based offset for "string" effect)
           // When bubble moves right, pill drags behind left (opposite velocity)
           pill.offsetX = -bubble.vx * 12
           pill.offsetY = -bubble.vy * 12
           
           // Convert bubble position from % to pixels for spring calculation
-          const viewportWidth = window.innerWidth
-          const viewportHeight = window.innerHeight
-          const anchorX = (bubble.x / 100) * viewportWidth + pill.offsetX
-          const anchorY = (bubble.y / 100) * viewportHeight + pill.offsetY
+          // CRITICAL: Use viewport ref, not window.innerWidth/Height
+          const viewport = viewportRef.current
+          const anchorX = (bubble.x / 100) * viewport.w + pill.offsetX
+          const anchorY = (bubble.y / 100) * viewport.h + pill.offsetY
           
           // Spring physics: accelerate toward anchor
           const dx = anchorX - pill.x
@@ -509,13 +549,14 @@ function Home() {
           const k = 0.08  // spring strength
           const damp = 0.82  // damping (lower = more float)
           
-          // Accelerate toward anchor
-          pill.vx = pill.vx * damp + dx * k
-          pill.vy = pill.vy * damp + dy * k
+          // CRITICAL: Spring physics with dt - multiply by dt for frame-rate independence
+          // Accelerate toward anchor (dt-aware)
+          pill.vx = pill.vx * Math.pow(damp, dt) + dx * k * dt
+          pill.vy = pill.vy * Math.pow(damp, dt) + dy * k * dt
           
-          // Integrate position
-          pill.x += pill.vx
-          pill.y += pill.vy
+          // Integrate position (dt-aware)
+          pill.x += pill.vx * dt
+          pill.y += pill.vy * dt
         })
         
         // Prevent pills from overlapping each other (DOM-only separation)
@@ -557,6 +598,12 @@ function Home() {
         pills.forEach(pill => {
           const element = bubbleElementsRef.current[pill.id]
           if (element) {
+            // Final NaN check before rendering
+            if (!Number.isFinite(pill.x) || !Number.isFinite(pill.y)) {
+              console.error('PILL NaN before render:', { id: pill.id, x: pill.x, y: pill.y })
+              return // Skip rendering this frame
+            }
+            
             // Calculate rotation based on velocity for "string" effect
             const angle = Math.atan2(pill.vy, pill.vx) * (180 / Math.PI)
             
@@ -572,9 +619,12 @@ function Home() {
         setAllBubblesArrived(true)
       }
       
+      // CRITICAL: Use performance.now() for stable frame timing
       animationFrameRef.current = requestAnimationFrame(updateBubbles)
     }
     
+    // CRITICAL: Start animation immediately - don't wait for mouse events
+    // Use performance.now() for accurate timing
     animationFrameRef.current = requestAnimationFrame(updateBubbles)
     
     return () => {
@@ -584,16 +634,54 @@ function Home() {
     }
   }, [showBubbles])
 
-  // Update device type on resize
+  // Viewport resize handler - rebuild bounds and update viewport
+  const handleResize = useCallback(() => {
+    viewportRef.current.w = window.innerWidth
+    viewportRef.current.h = window.innerHeight
+    
+    // Rebuild bounds if needed (bubbles use percentages, but pills use pixels)
+    // If bubbles have arrived, we might need to adjust their base positions
+    if (bubblePositionsRef.current && Array.isArray(bubblePositionsRef.current)) {
+      // Bubbles use percentages, so they should be fine
+      // But pills use pixels, so we need to update their positions
+      const pills = pillPositionsRef.current
+      if (pills && Array.isArray(pills)) {
+        bubblePositionsRef.current.forEach((bubble, idx) => {
+          const pill = pills.find(p => p?.id === bubble?.id) || pills[idx]
+          if (pill && bubble) {
+            // Recalculate pill position from bubble percentage
+            pill.x = (bubble.x / 100) * viewportRef.current.w
+            pill.y = (bubble.y / 100) * viewportRef.current.h
+          }
+        })
+      }
+    }
+  }, [])
+  
+  // Update device type and viewport on resize
   useEffect(() => {
     const updateDevice = () => {
       const mobile = isMobileDevice()
       setIsMobile(mobile)
     }
+    
+    // Initial setup
     updateDevice()
-    window.addEventListener('resize', updateDevice, { passive: true })
-    return () => window.removeEventListener('resize', updateDevice)
-  }, [])
+    handleResize()
+    
+    // Run resize after layout settles (fonts, etc.)
+    requestAnimationFrame(() => handleResize())
+    setTimeout(handleResize, 250)
+    
+    window.addEventListener('resize', () => {
+      updateDevice()
+      handleResize()
+    }, { passive: true })
+    
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [handleResize])
 
   // Optimized mouse/touch position update with direct DOM manipulation for cursor
   const updateMousePosition = useCallback((x, y) => {
