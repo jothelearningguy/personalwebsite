@@ -608,6 +608,11 @@ button.secret-modal-close {
   transform: translateX(-50%) rotate(-0.5deg) scale(1.05);
 }
 
+/* Experience pill - disable animations for performance */
+.experience-pill {
+  animation: none !important;
+}
+
 .secret-text {
   position: relative; /* Changed from absolute to relative for better layout */
   top: auto;

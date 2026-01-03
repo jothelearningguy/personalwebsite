@@ -612,8 +612,8 @@ function Home() {
             const angle = Math.atan2(pill.vy, pill.vx) * (180 / Math.PI)
             
             // CRITICAL: Spring physics owns transform - no other code should set it
-            // Use transform with rotation for "mirror on a string" look
-            element.style.transform = `translate(${pill.x}px, ${pill.y}px) translate(-50%, -50%) rotate(${angle * 0.08}deg)`
+            // Use translate3d for GPU acceleration with rotation for "mirror on a string" look
+            element.style.transform = `translate3d(${pill.x}px, ${pill.y}px, 0) rotate(${angle * 0.08}deg)`
           }
         })
       }
@@ -935,9 +935,9 @@ function Home() {
                     className="secret-item revealed permanent clickable experience-pill"
                     style={{ 
                       position: 'absolute',
-                      left: '50%', // Use center as base, transform handles position (updated ONLY by spring physics)
-                      top: '50%',
-                      transform: 'translate(-50%, -50%)', // Initial - spring physics will update this
+                      left: 0, // Start at origin, transform handles position (updated ONLY by spring physics)
+                      top: 0,
+                      transform: 'translate3d(0, 0, 0)', // Initial - spring physics will update this
                       zIndex: 10010,
                       opacity: showBubbles ? 1 : 0,
                       visibility: showBubbles ? 'visible' : 'hidden',
