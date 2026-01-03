@@ -671,55 +671,30 @@ function Home() {
   }, [handleSecretClick])
 
   return (
-    <div className={`app ${documentOpen ? 'document-open' : ''} ${isMobile ? 'mobile' : 'desktop'}`}>
-      {/* Cursor - optimized with direct DOM ref - show when bubbles, quotes, OR document is visible */}
-      {(showBubbles || showQuotes || documentOpen) && (
-        <div 
-          ref={cursorElementRef}
-          className="soccer-ball-cursor" 
-          style={cursorStyle}
-        >
-          ⚽
-        </div>
+    <>
+      {/* Metaballs WebGL renderer - OUTSIDE .app container to avoid parent transform/filter issues */}
+      {/* CRITICAL: This must be at root level, not inside transformed containers */}
+      {!documentOpen && showBubbles && bubblePositionsRef.current && Array.isArray(bubblePositionsRef.current) && bubblePositionsRef.current.length > 0 && (
+        <Metaballs 
+          bubbles={bubblePositionsRef.current} 
+          showBubbles={showBubbles}
+        />
       )}
+      
+      <div className={`app ${documentOpen ? 'document-open' : ''} ${isMobile ? 'mobile' : 'desktop'}`}>
+        {/* Cursor - optimized with direct DOM ref - show when bubbles, quotes, OR document is visible */}
+        {(showBubbles || showQuotes || documentOpen) && (
+          <div 
+            ref={cursorElementRef}
+            className="soccer-ball-cursor" 
+            style={cursorStyle}
+          >
+            ⚽
+          </div>
+        )}
 
-      {!documentOpen && (
-        <>
-          {/* Metaballs WebGL renderer - lava lamp effect */}
-          {/* TEMPORARILY DISABLED FOR DEBUG: Test collisions with plain circles */}
-          {false && showBubbles && bubblePositionsRef.current && Array.isArray(bubblePositionsRef.current) && bubblePositionsRef.current.length > 0 && (
-            <Metaballs 
-              bubbles={bubblePositionsRef.current} 
-              showBubbles={showBubbles}
-            />
-          )}
-          
-          {/* DEBUG: Render plain circles to test collisions */}
-          {showBubbles && bubblePositionsRef.current && Array.isArray(bubblePositionsRef.current) && bubblePositionsRef.current.length > 0 && (
-            <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 3 }}>
-              {bubblePositionsRef.current.map((bubble, idx) => {
-                if (!bubble || typeof bubble.x !== 'number' || typeof bubble.y !== 'number') return null
-                return (
-                  <div
-                    key={`debug-circle-${bubble.id || idx}`}
-                    style={{
-                      position: 'absolute',
-                      left: `${bubble.x}%`,
-                      top: `${bubble.y}%`,
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      backgroundColor: `hsl(${idx * 36}, 70%, 60%)`,
-                      border: '2px solid white',
-                      transform: 'translate(-50%, -50%)',
-                      opacity: 0.8,
-                      pointerEvents: 'none'
-                    }}
-                  />
-                )
-              })}
-            </div>
-          )}
+        {!documentOpen && (
+          <>
           
 
           {/* Quotes on main page - centered with bubbles */}
@@ -903,11 +878,11 @@ function Home() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Secret modal */}
-      {selectedSecret && (
+        {/* Secret modal */}
+        {selectedSecret && (
         <div className="secret-modal-overlay" onClick={handleCloseSecretModal}>
           <div className="secret-modal" onClick={(e) => e.stopPropagation()}>
             <button className="secret-modal-close" onClick={handleCloseSecretModal}>×</button>
@@ -922,10 +897,11 @@ function Home() {
                 <p className="secret-modal-description">{selectedSecret.description}</p>
               </div>
             </div>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   )
 }
 

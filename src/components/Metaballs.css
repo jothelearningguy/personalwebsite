@@ -5,9 +5,13 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 4; /* Above background, below spotlight (z-index 2), below text and bubbles (z-index 10010) */
+  z-index: 3; /* Above background, below text/bubbles (z-index 10010) but visible */
   opacity: 1;
+  /* CRITICAL: No transforms/filters on parent - this container must be at root level */
+  /* Remove mix-blend-mode if it causes issues, but keep for glow effect */
   mix-blend-mode: screen; /* Blend with background for lava lamp effect */
+  /* Ensure this layer is not affected by parent transforms */
+  isolation: auto; /* Don't create new stacking context that breaks compositing */
 }
 
 .metaballs-container canvas {
