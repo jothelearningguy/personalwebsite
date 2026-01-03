@@ -157,6 +157,7 @@ function Home() {
   const lastCursorUpdate = useRef(0)
   const bubbleElementsRef = useRef({})
   const bubblePositionsRef = useRef(null)
+  const pillPositionsRef = useRef([]) // Spring-follow state for pills
   
   // Timer to hide bubbles and show quotes after 8 seconds
   useEffect(() => {
@@ -227,6 +228,21 @@ function Home() {
       
       // Initialize positions ref with initial positions
       bubblePositionsRef.current = initialBubblePositions.current.map(b => ({ ...b }))
+      
+      // Initialize pill spring-follow state (pills follow bubbles with spring physics)
+      pillPositionsRef.current = hiddenSecrets.map((secret, index) => {
+        const bubble = bubblePositionsRef.current[index]
+        return {
+          id: secret.id,
+          x: bubble?.x ?? 50, // Start at bubble position
+          y: bubble?.y ?? 50,
+          vx: 0,
+          vy: 0,
+          offsetX: 0, // Velocity-based offset for "string" effect
+          offsetY: 0
+        }
+      })
+      
       startTimeRef.current = Date.now()
     } catch (error) {
       console.error('Error initializing bubbles:', error)
@@ -467,14 +483,87 @@ function Home() {
         }
       }
       
-      // Update DOM directly for smooth performance - update every frame for smooth animation
-      positions.forEach(bubble => {
-        const element = bubbleElementsRef.current[bubble.id]
-        if (element) {
-          // Use transform instead of left/top for GPU acceleration
-          element.style.transform = `translate(${bubble.x}%, ${bubble.y}%) translate(-50%, -50%)`
+      // Update pill positions using spring-follow physics (pills tethered to bubbles)
+      const pills = pillPositionsRef.current
+      if (pills && Array.isArray(pills)) {
+        positions.forEach((bubble, idx) => {
+          const pill = pills.find(p => p?.id === bubble?.id) || pills[idx]
+          if (!pill || !bubble) return
+          
+          // Calculate anchor point (bubble position + velocity-based offset for "string" effect)
+          // When bubble moves right, pill drags behind left (opposite velocity)
+          pill.offsetX = -bubble.vx * 12
+          pill.offsetY = -bubble.vy * 12
+          
+          // Convert bubble position from % to pixels for spring calculation
+          const viewportWidth = window.innerWidth
+          const viewportHeight = window.innerHeight
+          const anchorX = (bubble.x / 100) * viewportWidth + pill.offsetX
+          const anchorY = (bubble.y / 100) * viewportHeight + pill.offsetY
+          
+          // Spring physics: accelerate toward anchor
+          const dx = anchorX - pill.x
+          const dy = anchorY - pill.y
+          
+          // Spring constants (tune these)
+          const k = 0.08  // spring strength
+          const damp = 0.82  // damping (lower = more float)
+          
+          // Accelerate toward anchor
+          pill.vx = pill.vx * damp + dx * k
+          pill.vy = pill.vy * damp + dy * k
+          
+          // Integrate position
+          pill.x += pill.vx
+          pill.y += pill.vy
+        })
+        
+        // Prevent pills from overlapping each other (DOM-only separation)
+        for (let i = 0; i < pills.length; i++) {
+          for (let j = i + 1; j < pills.length; j++) {
+            const p1 = pills[i]
+            const p2 = pills[j]
+            if (!p1 || !p2) continue
+            
+            const dx = p2.x - p1.x
+            const dy = p2.y - p1.y
+            const dist = Math.hypot(dx, dy) || 1
+            const min = 120 // how far apart labels should be
+            
+            if (dist < min) {
+              const push = (min - dist) * 0.02
+              const nx = dx / dist
+              const ny = dy / dist
+              p1.x -= nx * push
+              p1.y -= ny * push
+              p2.x += nx * push
+              p2.y += ny * push
+            }
+          }
         }
+      }
+      
+      // Update DOM directly for smooth performance - update every frame for smooth animation
+      // Bubbles: only update metaball positions (not DOM - bubbles are invisible)
+      // Pills: update DOM with spring-follow positions
+      positions.forEach(bubble => {
+        // Bubbles are rendered by WebGL metaballs, not DOM
+        // No DOM update needed for bubbles
       })
+      
+      // Update pill DOM elements with spring-follow positions
+      if (pills && Array.isArray(pills)) {
+        pills.forEach(pill => {
+          const element = bubbleElementsRef.current[pill.id]
+          if (element) {
+            // Calculate rotation based on velocity for "string" effect
+            const angle = Math.atan2(pill.vy, pill.vx) * (180 / Math.PI)
+            
+            // Use transform with rotation for "mirror on a string" look
+            element.style.transform = `translate(${pill.x}px, ${pill.y}px) translate(-50%, -50%) rotate(${angle * 0.08}deg)`
+          }
+        })
+      }
       
       // Check if all bubbles have arrived
       if (allArrived && !allBubblesArrived) {
@@ -712,11 +801,11 @@ function Home() {
           {showBubbles && (
             <div className={`secrets-layer permanent-secrets ${!showBubbles ? 'fade-out' : ''}`}>
               {hiddenSecrets.map(secret => {
-                // Get current position from physics, or use initial off-screen position
-                const bubble = bubblePositionsRef.current?.find(b => b?.id === secret.id)
-                // Use bubble position if available, otherwise use start position, otherwise default off-screen
-                const currentX = bubble?.x ?? bubble?.startX ?? -50
-                const currentY = bubble?.y ?? bubble?.startY ?? -50
+                // Pills are positioned by spring-follow physics in the animation loop
+                // Initial position will be set by spring system
+                const pill = pillPositionsRef.current?.find(p => p?.id === secret.id)
+                const initialX = pill?.x ?? window.innerWidth / 2
+                const initialY = pill?.y ?? window.innerHeight / 2
                 
                 return (
                   <div
@@ -725,9 +814,9 @@ function Home() {
                     className="secret-item revealed permanent clickable"
                     style={{ 
                       position: 'absolute',
-                      left: '50%', // Use center as base, transform handles position
+                      left: '50%', // Use center as base, transform handles position (updated by spring physics)
                       top: '50%',
-                      transform: `translate(${currentX}%, ${currentY}%) translate(-50%, -50%)`,
+                      transform: `translate(${initialX}px, ${initialY}px) translate(-50%, -50%)`,
                       zIndex: 10010,
                       opacity: showBubbles ? 1 : 0,
                       visibility: showBubbles ? 'visible' : 'hidden',
