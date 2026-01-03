@@ -147,6 +147,8 @@ function Home() {
   const initialBubblePositions = useRef([])
   const animationFrameRef = useRef(null)
   const startTimeRef = useRef(null)
+  const lastTimeRef = useRef(performance.now()) // Single clock - MANDATORY
+  const allArrivedRef = useRef(false) // Ref instead of state for RAF
 
   // Refs for performance
   const mousePosRef = useRef({ x: 0, y: 0 })
@@ -249,13 +251,28 @@ function Home() {
         }
       })
       
-      startTimeRef.current = Date.now()
+      startTimeRef.current = performance.now()
+      lastTimeRef.current = performance.now() // Initialize clock
+      allArrivedRef.current = false // Reset arrival state
     } catch (error) {
       console.error('Error initializing bubbles:', error)
       bubblePositionsRef.current = []
-      startTimeRef.current = Date.now()
+      startTimeRef.current = performance.now()
+      lastTimeRef.current = performance.now()
+      allArrivedRef.current = false
       return
     }
+    
+    // Animation phases - hard separation
+    const PHASE = {
+      ENTERING: 0,
+      FLOATING: 1
+    }
+    
+    // Initialize bubble phases
+    bubblePositionsRef.current.forEach(bubble => {
+      bubble.phase = PHASE.ENTERING
+    })
 
     // Easing function for smooth animation
     const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3)
@@ -275,54 +292,57 @@ function Home() {
     }
     
     let frameCount = 0
-    let lastTime = performance.now()
     
     const updateBubbles = (now) => {
       const positions = bubblePositionsRef.current
       if (!positions || !Array.isArray(positions) || positions.length === 0) {
         // Keep animation loop running even if positions aren't ready yet
-        lastTime = now
+        lastTimeRef.current = now
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current)
+        }
         animationFrameRef.current = requestAnimationFrame(updateBubbles)
         return
       }
       if (!startTimeRef.current) {
-        startTimeRef.current = Date.now()
-        lastTime = now
+        startTimeRef.current = now
+        lastTimeRef.current = now
         // Continue animation loop
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current)
+        }
         animationFrameRef.current = requestAnimationFrame(updateBubbles)
         return
       }
       
       // Calculate delta time (normalized to 60fps units) and clamp it
-      let dt = (now - lastTime) / 16.666 // normalize to 60fps units
-      lastTime = now
+      const dtMs = now - lastTimeRef.current
+      lastTimeRef.current = now
       
       // CRITICAL: Clamp dt to prevent explosions when DevTools opens/closes
-      dt = Math.max(0.5, Math.min(dt, 1.5))
+      const dt = Math.min(1.5, Math.max(0.5, dtMs / 16.666))
       
-      const currentTime = Date.now()
+      // Use performance.now() for elapsed time (not Date.now())
+      const currentTime = now
       const elapsed = currentTime - startTimeRef.current
       let allArrived = true
       frameCount++
-      
-      // DEBUG: Log first bubble's position and velocity every 60 frames (~1 second at 60fps)
-      if (frameCount % 60 === 0 && positions.length > 0) {
-        const firstBubble = positions[0]
-        console.log('DEBUG Bubble 0:', {
-          x: firstBubble.x?.toFixed(2),
-          y: firstBubble.y?.toFixed(2),
-          vx: firstBubble.vx?.toFixed(4),
-          vy: firstBubble.vy?.toFixed(4),
-          hasArrived: firstBubble.hasArrived,
-          isAnimating: firstBubble.isAnimating
-        })
-      }
       
       // Update physics for each bubble
       positions.forEach(bubble => {
         if (!bubble) return
         
-        let { baseX, baseY, startX, startY, waypoint1, waypoint2, animationDelay, isAnimating, hasArrived } = bubble
+        let { baseX, baseY, startX, startY, waypoint1, waypoint2, animationDelay } = bubble
+        
+        // CRITICAL: Clamp NaN BEFORE any physics calculations
+        if (!Number.isFinite(bubble.x) || !Number.isFinite(bubble.y)) {
+          bubble.x = bubble.baseX
+          bubble.y = bubble.baseY
+          bubble.vx = 0
+          bubble.vy = 0
+          bubble.phase = PHASE.FLOATING
+          return
+        }
         
         // Ensure waypoints exist - create defaults if missing
         if (!waypoint1 || !waypoint2) {
@@ -347,70 +367,54 @@ function Home() {
           bubble.y = startY
         }
         
-        // Check if it's time to start animating this bubble
-        if (!isAnimating && elapsed >= animationDelay) {
-          bubble.isAnimating = true
-          bubble.startTime = currentTime
-        }
-        
-        // Animate bubble from off-screen to target position with curved path
-        // CRITICAL: This Bezier tweening ONLY happens during entry animation
-        // Once hasArrived=true, physics takes over completely
-        if (bubble.isAnimating && !hasArrived && bubble.startTime !== null) {
-          const animationElapsed = currentTime - bubble.startTime
-          const animationDuration = 2500 // 2.5 seconds for curved path
-          const progress = Math.min(animationElapsed / animationDuration, 1)
-          const easedProgress = easeOutCubic(progress)
+        // Hard-separate animation phases - never allow both systems to run
+        if (bubble.phase === PHASE.ENTERING) {
+          // ENTERING phase: Bezier tweening only
+          if (!bubble.isAnimating && elapsed >= animationDelay) {
+            bubble.isAnimating = true
+            bubble.startTime = currentTime
+          }
           
-          // Use cubic bezier for curved path: start -> waypoint1 -> waypoint2 -> target
-          const point = cubicBezier(
-            easedProgress,
-            { x: startX, y: startY },
-            waypoint1,
-            waypoint2,
-            { x: baseX, y: baseY }
-          )
-          
-          // CRITICAL: Only set position during Bezier animation (before arrival)
-          // After arrival, physics will control position
-          bubble.x = point.x
-          bubble.y = point.y
-          
-          // Check if arrived at target
-          if (progress >= 1) {
-            bubble.hasArrived = true
-            // Set final position to base
-            bubble.x = baseX
-            bubble.y = baseY
-            // CRITICAL: Initialize velocity for physics - this is where physics takes over
-            bubble.vx = (Math.random() - 0.5) * 0.3
-            bubble.vy = (Math.random() - 0.5) * 0.3
+          if (bubble.isAnimating && bubble.startTime !== null) {
+            const animationElapsed = currentTime - bubble.startTime
+            const animationDuration = 2500 // 2.5 seconds for curved path
+            const progress = Math.min(animationElapsed / animationDuration, 1)
+            const easedProgress = easeOutCubic(progress)
+            
+            // Use cubic bezier for curved path: start -> waypoint1 -> waypoint2 -> target
+            const point = cubicBezier(
+              easedProgress,
+              { x: startX, y: startY },
+              waypoint1,
+              waypoint2,
+              { x: baseX, y: baseY }
+            )
+            
+            bubble.x = point.x
+            bubble.y = point.y
+            
+            // Check if arrived at target - transition to FLOATING phase
+            if (progress >= 1) {
+              bubble.phase = PHASE.FLOATING
+              bubble.x = baseX
+              bubble.y = baseY
+              // Initialize velocity for physics
+              bubble.vx = (Math.random() - 0.5) * 0.3
+              bubble.vy = (Math.random() - 0.5) * 0.3
+            } else {
+              allArrived = false
+            }
           } else {
+            // Keep bubble at starting position until animation starts
+            if (bubble.x !== startX || bubble.y !== startY) {
+              bubble.x = startX
+              bubble.y = startY
+            }
             allArrived = false
           }
-        } else if (!hasArrived) {
-          // Keep bubble at starting position until animation starts
-          if (bubble.x !== startX || bubble.y !== startY) {
-            bubble.x = startX
-            bubble.y = startY
-          }
-          allArrived = false
-        }
-        
-        // After arriving, apply lava lamp physics
-        // CRITICAL: Only apply physics if bubble has arrived - don't let Bezier override physics
-        if (bubble.hasArrived) {
+        } else if (bubble.phase === PHASE.FLOATING) {
+          // FLOATING phase: Physics only
           let { x, y, vx, vy } = bubble
-          
-          // CRITICAL: Check for NaN values
-          if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(vx) || !Number.isFinite(vy)) {
-            console.error('BUBBLE NaN detected:', { id: bubble.id, x, y, vx, vy })
-            // Reset to safe values
-            x = baseX
-            y = baseY
-            vx = 0
-            vy = 0
-          }
           
           // CRITICAL FIX: Use physics-based position updates with dt
           // Update position based on velocity (physics-driven) - multiply by dt
@@ -418,11 +422,11 @@ function Home() {
           y += vy * dt
           
           // Gentle drift back toward base position (lava lamp effect) - ENHANCED
-          const driftX = (baseX - x) * 0.015 // Increased from 0.01
+          const driftX = (baseX - x) * 0.015
           const driftY = (baseY - y) * 0.015
           // Add more random drift for lava lamp effect
-          if (frameCount % 2 === 0) { // More frequent random drift
-            vx += (driftX + (Math.random() - 0.5) * 0.04) * dt // Multiply by dt
+          if (frameCount % 2 === 0) {
+            vx += (driftX + (Math.random() - 0.5) * 0.04) * dt
             vy += (driftY + (Math.random() - 0.5) * 0.04) * dt
           } else {
             vx += driftX * dt
@@ -614,25 +618,47 @@ function Home() {
         })
       }
       
-      // Check if all bubbles have arrived
-      if (allArrived && !allBubblesArrived) {
-        setAllBubblesArrived(true)
+      // Check if all bubbles have arrived - use ref, not state (no React re-renders in RAF)
+      if (allArrived && !allArrivedRef.current) {
+        allArrivedRef.current = true
       }
       
-      // CRITICAL: Use performance.now() for stable frame timing
+      // CRITICAL: RAF lifecycle fix - cancel before requesting new frame
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
       animationFrameRef.current = requestAnimationFrame(updateBubbles)
     }
     
     // CRITICAL: Start animation immediately - don't wait for mouse events
     // Use performance.now() for accurate timing
+    // Cancel any existing RAF first
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current)
+    }
     animationFrameRef.current = requestAnimationFrame(updateBubbles)
+    
+    // Sync allArrivedRef to React state outside RAF (separate effect)
+    // This prevents React re-renders during animation
+    const syncArrivedState = () => {
+      if (allArrivedRef.current && !allBubblesArrived) {
+        setAllBubblesArrived(true)
+      }
+    }
+    
+    // Sync periodically (not every frame)
+    const syncInterval = setInterval(syncArrivedState, 100)
     
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
+      }
+      if (syncInterval) {
+        clearInterval(syncInterval)
       }
     }
-  }, [showBubbles])
+  }, [showBubbles, allBubblesArrived])
 
   // Viewport resize handler - rebuild bounds and update viewport
   const handleResize = useCallback(() => {
