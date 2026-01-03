@@ -268,7 +268,7 @@ function Home() {
       
       // Update physics for each bubble
       positions.forEach(bubble => {
-        const { baseX, baseY, startX, startY, waypoint1, waypoint2, animationDelay, startTime, isAnimating, hasArrived } = bubble
+        const { baseX, baseY, startX, startY, waypoint1, waypoint2, animationDelay, isAnimating, hasArrived } = bubble
         
         // Check if it's time to start animating this bubble
         if (!isAnimating && elapsed >= animationDelay) {
@@ -277,7 +277,7 @@ function Home() {
         }
         
         // Animate bubble from off-screen to target position with curved path
-        if (bubble.isAnimating && !hasArrived) {
+        if (bubble.isAnimating && !hasArrived && bubble.startTime !== null) {
           const animationElapsed = currentTime - bubble.startTime
           const animationDuration = 2500 // 2.5 seconds for curved path
           const progress = Math.min(animationElapsed / animationDuration, 1)

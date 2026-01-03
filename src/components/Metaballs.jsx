@@ -79,6 +79,7 @@ function Metaballs({ bubbles, showBubbles }) {
 
   useEffect(() => {
     if (!mountRef.current || !showBubbles) return
+    if (!bubbles || !Array.isArray(bubbles) || bubbles.length === 0) return
 
     // Scene setup
     const scene = new THREE.Scene()
@@ -103,7 +104,7 @@ function Metaballs({ bubbles, showBubbles }) {
     // Flatten bubble positions to array of floats [x1, y1, x2, y2, ...]
     const flattenedPositions = new Float32Array(40) // Max 20 bubbles * 2
     bubbles.forEach((bubble, i) => {
-      if (i < 20) {
+      if (i < 20 && bubble) {
         flattenedPositions[i * 2] = bubble.x || 0
         flattenedPositions[i * 2 + 1] = bubble.y || 0
       }
@@ -136,13 +137,20 @@ function Metaballs({ bubbles, showBubbles }) {
     let lastUpdate = 0
     const throttleMs = 33 // ~30fps max (reduced from 16ms/60fps)
     const animate = () => {
-      if (!showBubbles) return
+      if (!showBubbles) {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current)
+          animationFrameRef.current = null
+        }
+        return
+      }
       
       animationFrameRef.current = requestAnimationFrame(animate)
       
       const now = Date.now()
       if (now - lastUpdate < throttleMs) {
-        // Skip rendering entirely if throttled
+        // Still render, just don't update uniforms
+        renderer.render(scene, camera)
         return
       }
       lastUpdate = now
