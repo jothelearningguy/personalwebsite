@@ -56,17 +56,22 @@ const fragmentShader = `
       );
       
       float ballDist = sdfCircle(p, screenPos, u_radius);
-      dist = smin(dist, ballDist, 0.12); // Smooth blending - smaller k = more merging
+      dist = smin(dist, ballDist, 0.15); // Increased blending for more merging
     }
     
-    // Create the blob shape with smooth edges
-    float alpha = 1.0 - smoothstep(-0.08, 0.08, dist);
+    // Create the blob shape with smooth edges - ENHANCED for more visible effect
+    float alpha = 1.0 - smoothstep(-0.12, 0.12, dist); // Wider falloff
     
-    // Lava lamp colors - subtle purple/pink glow with time-based variation
-    vec3 baseColor = vec3(0.7, 0.55, 0.9);
-    vec3 color = baseColor * alpha * 0.5;
+    // Lava lamp colors - ENHANCED with time-based variation and more vibrant colors
+    vec3 baseColor1 = vec3(0.8, 0.6, 1.0); // Brighter purple
+    vec3 baseColor2 = vec3(0.9, 0.7, 0.9); // Pink
+    vec3 baseColor = mix(baseColor1, baseColor2, sin(u_time * 0.5) * 0.5 + 0.5);
     
-    gl_FragColor = vec4(color, alpha * 0.35);
+    // Add glow effect
+    float glow = exp(-dist * 8.0) * 0.6;
+    vec3 color = baseColor * alpha * 0.8 + baseColor * glow * 0.4; // Much brighter
+    
+    gl_FragColor = vec4(color, alpha * 0.6 + glow * 0.3); // Increased opacity from 0.35 to 0.6+
   }
 `
 
@@ -117,7 +122,7 @@ function Metaballs({ bubbles, showBubbles }) {
       u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
       u_time: { value: 0 },
       u_numBalls: { value: Math.min(bubbles.length, 20) },
-      u_radius: { value: 0.06 }, // Radius in normalized screen space
+      u_radius: { value: 0.08 }, // Increased radius for more visible bubbles
       u_ballPositions: { value: flattenedPositions }
     }
 
@@ -136,9 +141,7 @@ function Metaballs({ bubbles, showBubbles }) {
     const mesh = new THREE.Mesh(geometry, material)
     scene.add(mesh)
 
-    // Animation loop - OPTIMIZED: throttle updates more aggressively
-    let lastUpdate = 0
-    const throttleMs = 33 // ~30fps max (reduced from 16ms/60fps)
+    // Animation loop - Full 60fps for smooth metaballs
     const animate = () => {
       if (!showBubbles) {
         if (animationFrameRef.current) {
@@ -150,25 +153,17 @@ function Metaballs({ bubbles, showBubbles }) {
       
       animationFrameRef.current = requestAnimationFrame(animate)
       
-      const now = Date.now()
-      if (now - lastUpdate < throttleMs) {
-        // Still render, just don't update uniforms
-        renderer.render(scene, camera)
-        return
-      }
-      lastUpdate = now
-      
-      // Update uniforms - only if bubbles array changed
+      // Update uniforms - update every frame for smooth animation
       if (materialRef.current && bubbles && bubbles.length > 0) {
-        // Skip time update - not needed for static metaballs
-        // materialRef.current.uniforms.u_time.value += 0.01
+        // Update time for animated colors
+        materialRef.current.uniforms.u_time.value += 0.016 // ~60fps time increment
         materialRef.current.uniforms.u_resolution.value.set(
           window.innerWidth,
           window.innerHeight
         )
         materialRef.current.uniforms.u_numBalls.value = Math.min(bubbles.length, 20)
         
-        // Update flattened bubble positions - batch update
+        // Update flattened bubble positions - real-time updates
         const flattened = materialRef.current.uniforms.u_ballPositions.value
         const maxBalls = Math.min(bubbles.length, 20)
         for (let i = 0; i < maxBalls; i++) {

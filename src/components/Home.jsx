@@ -326,21 +326,21 @@ function Home() {
           x += vx
           y += vy
           
-          // Gentle drift back toward base position (lava lamp effect)
-          const driftX = (baseX - x) * 0.01
-          const driftY = (baseY - y) * 0.01
-          // Reduce random calculations - only add random drift every 3rd frame
-          if (frameCount % 3 === 0) {
-            vx += driftX + (Math.random() - 0.5) * 0.02
-            vy += driftY + (Math.random() - 0.5) * 0.02
+          // Gentle drift back toward base position (lava lamp effect) - ENHANCED
+          const driftX = (baseX - x) * 0.015 // Increased from 0.01
+          const driftY = (baseY - y) * 0.015
+          // Add more random drift for lava lamp effect
+          if (frameCount % 2 === 0) { // More frequent random drift
+            vx += driftX + (Math.random() - 0.5) * 0.04 // Increased from 0.02
+            vy += driftY + (Math.random() - 0.5) * 0.04
           } else {
             vx += driftX
             vy += driftY
           }
           
-          // Damping for smooth movement
-          vx *= 0.98
-          vy *= 0.98
+          // Less damping for more movement
+          vx *= 0.985 // Reduced from 0.98
+          vy *= 0.985
           
           // Boundary constraints (keep bubbles on screen)
           if (x < 5) {
@@ -366,8 +366,8 @@ function Home() {
         }
       })
       
-      // Collision detection between bubbles (only after they've arrived) - OPTIMIZED: only check every 5th frame
-      if (frameCount % 5 === 0) {
+      // Collision detection between bubbles (only after they've arrived) - Check every frame for responsive collisions
+      {
         for (let i = 0; i < positions.length; i++) {
           for (let j = i + 1; j < positions.length; j++) {
             const b1 = positions[i]
@@ -380,11 +380,11 @@ function Home() {
             const dx = b2.x - b1.x
             const dy = b2.y - b1.y
             const distanceSquared = dx * dx + dy * dy
-            const minDistanceSquared = 144 // 12^2
+            const minDistanceSquared = 256 // 16^2 (increased from 12^2 for more visible collisions)
             
             if (distanceSquared < minDistanceSquared && distanceSquared > 0) {
               const distance = Math.sqrt(distanceSquared)
-              // Collision detected - bounce off each other
+              // Collision detected - bounce off each other with more force
               const angle = Math.atan2(dy, dx)
               const sin = Math.sin(angle)
               const cos = Math.cos(angle)
@@ -395,10 +395,10 @@ function Home() {
               const vx2 = b2.vx * cos + b2.vy * sin
               const vy2 = b2.vy * cos - b2.vx * sin
               
-              // Swap velocities (elastic collision)
+              // Swap velocities (elastic collision) - more bounce
               const swap = vx1
-              const newVx1 = vx2 * 0.9
-              const newVx2 = swap * 0.9
+              const newVx1 = vx2 * 1.1 // Increased bounce from 0.9
+              const newVx2 = swap * 1.1
               
               // Rotate back
               b1.vx = newVx1 * cos - vy1 * sin
@@ -406,10 +406,10 @@ function Home() {
               b2.vx = newVx2 * cos - vy2 * sin
               b2.vy = vy2 * cos + newVx2 * sin
               
-              // Separate bubbles
-              const overlap = 12 - distance
-              const separationX = (dx / distance) * overlap * 0.5
-              const separationY = (dy / distance) * overlap * 0.5
+              // Separate bubbles more aggressively
+              const overlap = 16 - distance
+              const separationX = (dx / distance) * overlap * 0.6 // Increased from 0.5
+              const separationY = (dy / distance) * overlap * 0.6
               
               b1.x -= separationX
               b1.y -= separationY
@@ -420,17 +420,14 @@ function Home() {
         }
       }
       
-      // Update DOM directly for smooth performance - batch DOM updates
-      // Only update DOM every other frame for better performance
-      if (frameCount % 2 === 0) {
-        positions.forEach(bubble => {
-          const element = bubbleElementsRef.current[bubble.id]
-          if (element) {
-            // Use transform instead of left/top for GPU acceleration
-            element.style.transform = `translate(${bubble.x}%, ${bubble.y}%) translate(-50%, -50%)`
-          }
-        })
-      }
+      // Update DOM directly for smooth performance - update every frame for smooth animation
+      positions.forEach(bubble => {
+        const element = bubbleElementsRef.current[bubble.id]
+        if (element) {
+          // Use transform instead of left/top for GPU acceleration
+          element.style.transform = `translate(${bubble.x}%, ${bubble.y}%) translate(-50%, -50%)`
+        }
+      })
       
       // Check if all bubbles have arrived
       if (allArrived && !allBubblesArrived) {
@@ -665,9 +662,10 @@ function Home() {
           {showBubbles && (
             <div className={`secrets-layer permanent-secrets ${!showBubbles ? 'fade-out' : ''}`}>
               {hiddenSecrets.map(secret => {
-                // Use initial position, will be updated by physics animation
-                const currentX = secret.x
-                const currentY = secret.y
+                // Get current position from physics, or use initial off-screen position
+                const bubble = bubblePositionsRef.current?.find(b => b?.id === secret.id)
+                const currentX = bubble?.x ?? -50 // Start off-screen
+                const currentY = bubble?.y ?? -50
                 
                 return (
                   <div
@@ -676,9 +674,9 @@ function Home() {
                     className="secret-item revealed permanent clickable"
                     style={{ 
                       position: 'absolute',
-                      left: currentX, 
-                      top: currentY, 
-                      transform: 'translate(-50%, -50%)',
+                      left: '50%', // Use center as base, transform handles position
+                      top: '50%',
+                      transform: `translate(${currentX}%, ${currentY}%) translate(-50%, -50%)`,
                       zIndex: 10010,
                       opacity: showBubbles ? 1 : 0,
                       visibility: showBubbles ? 'visible' : 'hidden',
