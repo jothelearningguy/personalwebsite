@@ -154,7 +154,7 @@ function Metaballs({ bubbles, showBubbles }) {
       animationFrameRef.current = requestAnimationFrame(animate)
       
       // Update uniforms - update every frame for smooth animation
-      if (materialRef.current && bubbles && bubbles.length > 0) {
+      if (materialRef.current && bubbles && Array.isArray(bubbles) && bubbles.length > 0) {
         // Update time for animated colors
         materialRef.current.uniforms.u_time.value += 0.016 // ~60fps time increment
         materialRef.current.uniforms.u_resolution.value.set(
@@ -167,15 +167,21 @@ function Metaballs({ bubbles, showBubbles }) {
         const flattened = materialRef.current.uniforms.u_ballPositions.value
         const maxBalls = Math.min(bubbles.length, 20)
         for (let i = 0; i < maxBalls; i++) {
-          if (bubbles[i]) {
-            flattened[i * 2] = bubbles[i].x || 0
-            flattened[i * 2 + 1] = bubbles[i].y || 0
+          if (bubbles[i] && typeof bubbles[i].x === 'number' && typeof bubbles[i].y === 'number') {
+            flattened[i * 2] = bubbles[i].x
+            flattened[i * 2 + 1] = bubbles[i].y
+          } else {
+            // Default to center if position is invalid
+            flattened[i * 2] = 50
+            flattened[i * 2 + 1] = 50
           }
         }
         materialRef.current.uniforms.u_ballPositions.needsUpdate = true
       }
       
+      // Always render, even if bubbles aren't ready yet
       renderer.render(scene, camera)
+      
     }
     
     animate()

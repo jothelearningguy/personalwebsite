@@ -256,10 +256,14 @@ function Home() {
     const updateBubbles = () => {
       const positions = bubblePositionsRef.current
       if (!positions || !Array.isArray(positions) || positions.length === 0) {
+        // Keep animation loop running even if positions aren't ready yet
+        animationFrameRef.current = requestAnimationFrame(updateBubbles)
         return
       }
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now()
+        // Continue animation loop
+        animationFrameRef.current = requestAnimationFrame(updateBubbles)
         return
       }
       const currentTime = Date.now()
@@ -271,11 +275,29 @@ function Home() {
       positions.forEach(bubble => {
         if (!bubble) return
         
-        const { baseX, baseY, startX, startY, waypoint1, waypoint2, animationDelay, isAnimating, hasArrived } = bubble
+        let { baseX, baseY, startX, startY, waypoint1, waypoint2, animationDelay, isAnimating, hasArrived } = bubble
         
-        // Safety check - ensure waypoints exist, skip this bubble if not
+        // Ensure waypoints exist - create defaults if missing
         if (!waypoint1 || !waypoint2) {
-          return
+          // Create default waypoints if missing
+          waypoint1 = {
+            x: startX + (baseX - startX) * 0.3 + (Math.random() - 0.5) * 30,
+            y: startY + (baseY - startY) * 0.3 + (Math.random() - 0.5) * 30
+          }
+          waypoint2 = {
+            x: startX + (baseX - startX) * 0.7 + (Math.random() - 0.5) * 30,
+            y: startY + (baseY - startY) * 0.7 + (Math.random() - 0.5) * 30
+          }
+          bubble.waypoint1 = waypoint1
+          bubble.waypoint2 = waypoint2
+        }
+        
+        // Ensure start position is set (off-screen)
+        if (bubble.x === undefined || bubble.x === null) {
+          bubble.x = startX
+        }
+        if (bubble.y === undefined || bubble.y === null) {
+          bubble.y = startY
         }
         
         // Check if it's time to start animating this bubble
@@ -315,6 +337,11 @@ function Home() {
             allArrived = false
           }
         } else if (!hasArrived) {
+          // Keep bubble at starting position until animation starts
+          if (bubble.x !== startX || bubble.y !== startY) {
+            bubble.x = startX
+            bubble.y = startY
+          }
           allArrived = false
         }
         
@@ -664,8 +691,9 @@ function Home() {
               {hiddenSecrets.map(secret => {
                 // Get current position from physics, or use initial off-screen position
                 const bubble = bubblePositionsRef.current?.find(b => b?.id === secret.id)
-                const currentX = bubble?.x ?? -50 // Start off-screen
-                const currentY = bubble?.y ?? -50
+                // Use bubble position if available, otherwise use start position, otherwise default off-screen
+                const currentX = bubble?.x ?? bubble?.startX ?? -50
+                const currentY = bubble?.y ?? bubble?.startY ?? -50
                 
                 return (
                   <div
