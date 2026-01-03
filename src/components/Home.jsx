@@ -470,8 +470,8 @@ function Home() {
             const b2 = positions[j]
             
             if (!b1 || !b2) continue
-            // Only check collisions if both bubbles have arrived
-            if (!b1.hasArrived || !b2.hasArrived) continue
+            // Only check collisions if both bubbles are in FLOATING phase
+            if (b1.phase !== PHASE.FLOATING || b2.phase !== PHASE.FLOATING) continue
             
             const dx = b2.x - b1.x
             const dy = b2.y - b1.y
@@ -728,7 +728,7 @@ function Home() {
     })
     
     // Update mouse position for cursor tracking - throttle more aggressively
-    const now = Date.now()
+    const now = performance.now()
     if (now - lastCursorUpdate.current >= 33) { // ~30fps (reduced from 16ms/60fps)
       lastCursorUpdate.current = now
       setMousePosition({ x, y })
