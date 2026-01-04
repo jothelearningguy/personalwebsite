@@ -95,53 +95,9 @@ function J0InTheWrld() {
         <p className="j0-wrld-subtitle">recent posts across my socials</p>
       </div>
 
-      <div className="social-posts-grid">
-        {socialPosts.map(post => (
-          <article key={post.id} className="social-post-card">
-            <div className="post-platform-header">
-              <span className="platform-icon">{getPlatformIcon(post.platform)}</span>
-              <div className="platform-info">
-                <span className="platform-name">{post.platform}</span>
-                <span className="platform-handle">{post.handle}</span>
-              </div>
-              <span className="post-date">{formatDate(post.date)}</span>
-            </div>
-            
-            <div className="post-content">
-              <p>{post.content}</p>
-            </div>
-
-            <div className="post-engagement">
-              {post.likes && (
-                <span className="engagement-item">
-                  <span className="engagement-icon">❤️</span>
-                  {post.likes}
-                </span>
-              )}
-              {post.retweets && (
-                <span className="engagement-item">
-                  <span className="engagement-icon">🔄</span>
-                  {post.retweets}
-                </span>
-              )}
-              {post.comments && (
-                <span className="engagement-item">
-                  <span className="engagement-icon">💬</span>
-                  {post.comments}
-                </span>
-              )}
-            </div>
-
-            <a 
-              href={post.link} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="post-link"
-            >
-              view on {post.platform} →
-            </a>
-          </article>
-        ))}
+      <div className="coming-soon-section">
+        <h2 className="coming-soon-title">coming soon</h2>
+        <p className="coming-soon-subtitle">social posts integration in progress</p>
       </div>
     </div>
   )

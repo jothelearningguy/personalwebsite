@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Righteous&display=swap');
+
 .j0-wrld-container {
   min-height: 100vh;
   background: #0f0f0f;
@@ -5,6 +7,10 @@
   max-width: 1200px;
   margin: 0 auto;
   color: rgba(220, 220, 220, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .j0-wrld-header {
@@ -15,13 +21,16 @@
 }
 
 .j0-wrld-title {
-  font-family: 'Space Mono', monospace;
-  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-family: 'Bebas Neue', 'Righteous', cursive;
+  font-size: clamp(3rem, 10vw, 6rem);
   font-weight: 400;
   color: rgba(240, 240, 240, 0.95);
   margin-bottom: 1rem;
-  letter-spacing: -0.02em;
-  transform: rotate(-0.3deg);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-1deg);
+  text-shadow: 3px 3px 0px rgba(180, 140, 255, 0.3),
+               6px 6px 0px rgba(0, 0, 0, 0.5);
 }
 
 .j0-wrld-subtitle {
@@ -30,6 +39,57 @@
   color: rgba(200, 200, 200, 0.7);
   letter-spacing: 0.05em;
   text-transform: lowercase;
+}
+
+.coming-soon-section {
+  text-align: center;
+  margin-top: 4rem;
+  padding: 4rem 2rem;
+  background: rgba(20, 20, 20, 0.6);
+  border: 2px solid rgba(180, 140, 255, 0.3);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+              inset 0 0 60px rgba(180, 140, 255, 0.1);
+}
+
+.coming-soon-title {
+  font-family: 'Bebas Neue', 'Righteous', cursive;
+  font-size: clamp(4rem, 12vw, 8rem);
+  font-weight: 400;
+  color: rgba(240, 240, 240, 0.95);
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transform: rotate(-1deg);
+  text-shadow: 4px 4px 0px rgba(180, 140, 255, 0.4),
+               8px 8px 0px rgba(0, 0, 0, 0.6),
+               0 0 30px rgba(180, 140, 255, 0.2);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.coming-soon-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.2rem;
+  color: rgba(200, 200, 200, 0.8);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 300;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    text-shadow: 4px 4px 0px rgba(180, 140, 255, 0.4),
+                 8px 8px 0px rgba(0, 0, 0, 0.6),
+                 0 0 30px rgba(180, 140, 255, 0.2);
+  }
+  50% {
+    text-shadow: 4px 4px 0px rgba(180, 140, 255, 0.6),
+                 8px 8px 0px rgba(0, 0, 0, 0.6),
+                 0 0 50px rgba(180, 140, 255, 0.4);
+  }
 }
 
 .social-posts-grid {
