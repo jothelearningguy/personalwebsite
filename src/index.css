@@ -1,3 +1,10 @@
+:root {
+  --ng-green: #008753;
+  --us-red: #B22234;
+  --us-blue: #3C3B6E;
+  --glass-white: rgba(255, 255, 255, 0.08);
+}
+
 html {
   width: 100%;
   min-height: 100%; /* Allow content to expand beyond viewport */
@@ -18,6 +25,13 @@ body {
   touch-action: manipulation;
   width: 100%;
   min-height: 100%; /* Allow content to expand beyond viewport */
+  /* Nigeria×USA prismatic field background */
+  background:
+    radial-gradient(circle at 18% 22%, color-mix(in srgb, var(--ng-green) 70%, white 30%) 0%, transparent 45%),
+    radial-gradient(circle at 82% 28%, color-mix(in srgb, var(--us-blue) 70%, white 30%) 0%, transparent 50%),
+    radial-gradient(circle at 55% 78%, color-mix(in srgb, var(--us-red) 65%, white 35%) 0%, transparent 52%),
+    linear-gradient(180deg, #050507 0%, #070712 40%, #050507 100%);
+  background-attachment: fixed;
 }
 
 code {

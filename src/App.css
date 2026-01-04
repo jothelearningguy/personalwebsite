@@ -19,14 +19,76 @@ html {
   position: relative;
   overflow-x: hidden; /* Allow vertical scrolling, prevent horizontal */
   overflow-y: auto; /* Enable vertical scrolling */
-  background: #0a0a0a;
+  background: transparent; /* Background now handled by body */
   cursor: none;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   transition: background 1s ease-in-out;
-  /* Subtle texture overlay for authenticity */
-  background-image: 
-    radial-gradient(circle at 20% 50%, rgba(120, 80, 200, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(200, 120, 80, 0.02) 0%, transparent 50%);
+}
+
+/* Kaleidoscope glass veil - Nigeria×USA prismatic effect */
+.kglass {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+
+  backdrop-filter: blur(42px) saturate(190%) contrast(115%);
+  -webkit-backdrop-filter: blur(42px) saturate(190%) contrast(115%);
+
+  /* prismatic glass tint */
+  background:
+    conic-gradient(from 200deg at 50% 50%,
+      rgba(0, 135, 83, 0.20),
+      rgba(60, 59, 110, 0.20),
+      rgba(178, 34, 52, 0.20),
+      rgba(255, 255, 255, 0.08),
+      rgba(0, 135, 83, 0.20)
+    );
+
+  mix-blend-mode: screen;
+  opacity: 0.75;
+
+  /* Kaleidoscope facets - stained-glass geometry */
+  /* Create geometric facets using repeating conic gradients */
+  /* This creates a kaleidoscope pattern that "cuts" the overlay into triangular facets */
+  /* Using a single complex pattern for better browser compatibility */
+  mask-image: 
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      rgba(255, 255, 255, 1) 0deg,
+      rgba(255, 255, 255, 1) 3deg,
+      rgba(255, 255, 255, 0.7) 3deg,
+      rgba(255, 255, 255, 0.7) 4deg,
+      rgba(255, 255, 255, 1) 4deg,
+      rgba(255, 255, 255, 1) 6deg,
+      rgba(255, 255, 255, 0.6) 6deg,
+      rgba(255, 255, 255, 0.6) 7deg,
+      rgba(255, 255, 255, 1) 7deg,
+      rgba(255, 255, 255, 1) 12deg
+    );
+  -webkit-mask-image: 
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      rgba(255, 255, 255, 1) 0deg,
+      rgba(255, 255, 255, 1) 3deg,
+      rgba(255, 255, 255, 0.7) 3deg,
+      rgba(255, 255, 255, 0.7) 4deg,
+      rgba(255, 255, 255, 1) 4deg,
+      rgba(255, 255, 255, 1) 6deg,
+      rgba(255, 255, 255, 0.6) 6deg,
+      rgba(255, 255, 255, 0.6) 7deg,
+      rgba(255, 255, 255, 1) 7deg,
+      rgba(255, 255, 255, 1) 12deg
+    );
+
+  /* subtle motion */
+  animation: kdrift 26s ease-in-out infinite;
+}
+
+@keyframes kdrift {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1.02); filter: hue-rotate(0deg); }
+  50%  { transform: translate3d(-1.5%, 1%, 0) rotate(0.6deg) scale(1.04); filter: hue-rotate(6deg); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1.02); filter: hue-rotate(0deg); }
 }
 
 /* Desktop-specific touch action */
@@ -782,16 +844,20 @@ button.secret-modal-close {
   margin-bottom: 1.8rem;
   margin-top: 0;
   padding: 0 1.2rem;
-  text-shadow: 
-    0 0 20px rgba(180, 140, 255, 0.3),
-    0 2px 4px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 2; /* above kglass */
+  color: #f8f8ff;
+  text-shadow:
+    0 0 24px rgba(255, 255, 255, 0.18),
+    -1px 0 rgba(0, 135, 83, 0.22),  /* Nigeria green */
+    1px 0 rgba(60, 59, 110, 0.22),  /* USA blue */
+    0 1px rgba(178, 34, 52, 0.16);  /* USA red */
   letter-spacing: -0.02em;
   line-height: 1.2;
   min-height: 1.2em;
   box-sizing: border-box;
   display: block;
   width: 100%;
-  color: #f0f0f0;
   /* Subtle organic variation */
   transform: rotate(-0.3deg);
   font-variant-numeric: tabular-nums;
@@ -935,7 +1001,7 @@ button.secret-modal-close {
   }
 }
 
-/* Open button - more authentic styling */
+/* Open button - flag-glass styling */
 .open-button {
   position: fixed !important;
   bottom: 40px !important;
@@ -943,15 +1009,27 @@ button.secret-modal-close {
   top: auto !important;
   left: auto !important;
   padding: 10px 24px;
-  background: rgba(20, 20, 20, 0.6);
-  border: 1px solid rgba(180, 140, 255, 0.15);
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 135, 83, 0.22),
+    rgba(60, 59, 110, 0.18),
+    rgba(178, 34, 52, 0.18)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 0 18px rgba(255, 255, 255, 0.12),
+    0 14px 40px rgba(0, 0, 0, 0.45);
   color: rgba(240, 240, 240, 0.9);
   font-family: 'Space Mono', monospace;
   font-size: 0.85rem;
   letter-spacing: 0.12em;
   cursor: pointer;
   transition: all 0.2s ease;
-  backdrop-filter: blur(8px);
   text-transform: lowercase;
   transform: rotate(-0.5deg);
   font-weight: 400;
@@ -979,9 +1057,11 @@ button.secret-modal-close {
 }
 
 .open-button:hover {
-  background: rgba(30, 30, 30, 0.8);
-  border-color: rgba(180, 140, 255, 0.3);
-  transform: rotate(0deg) translateY(-1px);
+  transform: translateY(-2px) rotate(0deg);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    inset 0 0 22px rgba(255, 255, 255, 0.16),
+    0 18px 55px rgba(0, 0, 0, 0.55);
 }
 
 /* Essay container - single vertical page */
@@ -1333,8 +1413,21 @@ button.secret-modal-close {
 
 .explore-button {
   padding: 12px 30px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 135, 83, 0.22),
+    rgba(60, 59, 110, 0.18),
+    rgba(178, 34, 52, 0.18)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 0 18px rgba(255, 255, 255, 0.12),
+    0 14px 40px rgba(0, 0, 0, 0.45);
   color: rgba(255, 255, 255, 0.9);
   font-family: 'Crimson Text', serif;
   font-size: 1rem;
@@ -1342,7 +1435,6 @@ button.secret-modal-close {
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: lowercase;
-  backdrop-filter: blur(5px);
   /* Ensure button is always visible and clickable */
   position: relative;
   z-index: 10005 !important;
@@ -1360,10 +1452,11 @@ button.secret-modal-close {
 }
 
 .explore-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  color: rgba(255, 255, 255, 1);
   transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    inset 0 0 22px rgba(255, 255, 255, 0.16),
+    0 18px 55px rgba(0, 0, 0, 0.55);
 }
 
 .explore-button:active {
@@ -1472,10 +1565,11 @@ button.secret-modal-close {
 }
 
 .form-submit-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  color: rgba(255, 255, 255, 1);
   transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    inset 0 0 22px rgba(255, 255, 255, 0.16),
+    0 18px 55px rgba(0, 0, 0, 0.55);
 }
 
 .form-submit-button:active {
@@ -1797,12 +1891,16 @@ button.secret-modal-close {
   margin-bottom: 1.8rem;
   margin-top: 0;
   padding: 0 1.2rem;
-  text-shadow: 
-    0 0 20px rgba(180, 140, 255, 0.3),
-    0 2px 4px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 2; /* above kglass */
+  color: #f8f8ff;
+  text-shadow:
+    0 0 24px rgba(255, 255, 255, 0.18),
+    -1px 0 rgba(0, 135, 83, 0.22),  /* Nigeria green */
+    1px 0 rgba(60, 59, 110, 0.22),  /* USA blue */
+    0 1px rgba(178, 34, 52, 0.16);  /* USA red */
   letter-spacing: -0.02em;
   line-height: 1.2;
-  color: #f0f0f0;
   transform: rotate(-0.3deg);
 }
 

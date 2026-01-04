@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import emailjs from '@emailjs/browser'
-import Metaballs from './Metaballs'
 import '../App.css'
 
 // Constants
@@ -903,16 +902,10 @@ function Home() {
 
   return (
     <>
-      {/* Metaballs WebGL renderer - OUTSIDE .app container to avoid parent transform/filter issues */}
-      {/* CRITICAL: This must be at root level, not inside transformed containers */}
-      {!documentOpen && showBubbles && bubblePositionsRef.current && Array.isArray(bubblePositionsRef.current) && bubblePositionsRef.current.length > 0 && (
-        <Metaballs 
-          bubbles={bubblePositionsRef.current} 
-          showBubbles={showBubbles}
-        />
-      )}
-      
       <div className={`app ${documentOpen ? 'document-open' : ''} ${isMobile ? 'mobile' : 'desktop'}`}>
+        {/* Kaleidoscope glass veil */}
+        <div className="kglass"></div>
+        
         {/* Cursor - optimized with direct DOM ref - show when bubbles, quotes, OR document is visible */}
         {(showBubbles || showQuotes || documentOpen) && (
           <div 
