@@ -770,30 +770,30 @@ function Home() {
   const handleTouchStart = useCallback((e) => {
     if (documentOpen) return
     
-        const target = e.target
-    // Allow interactive elements to handle their own events
-    if (isInteractiveElement(target) || target.closest('.secret-item')) {
-          return
-        }
+    const target = e.target
+    // Only skip if it's a button/link that should handle its own click
+    if (isInteractiveElement(target) && !target.closest('.secret-item')) {
+      return
+    }
     
     if (e.touches.length > 0) {
-        const touch = e.touches[0]
+      const touch = e.touches[0]
       updateMousePosition(touch.clientX, touch.clientY)
-        e.preventDefault()
+      // Don't prevent default on touchstart - let it bubble for proper touch handling
     }
   }, [documentOpen, isInteractiveElement, updateMousePosition])
 
   const handleTouchMove = useCallback((e) => {
     if (documentOpen) return
     
-        const target = e.target
-    // Allow interactive elements to handle their own events
-    if (isInteractiveElement(target) || target.closest('.secret-item')) {
-          return
-        }
+    const target = e.target
+    // Only skip if it's a button/link that should handle its own click
+    if (isInteractiveElement(target) && !target.closest('.secret-item')) {
+      return
+    }
     
     if (e.touches.length > 0) {
-      e.preventDefault()
+      // Don't prevent default - let scrolling work naturally
       if (touchMoveRafRef.current) cancelAnimationFrame(touchMoveRafRef.current)
       touchMoveRafRef.current = requestAnimationFrame(() => {
         const touch = e.touches[0]
@@ -801,6 +801,14 @@ function Home() {
       })
     }
   }, [documentOpen, isInteractiveElement, updateMousePosition])
+  
+  const handleTouchEnd = useCallback((e) => {
+    // Keep cursor visible briefly after touch ends
+    if (e.changedTouches.length > 0 && !documentOpen) {
+      const touch = e.changedTouches[0]
+      updateMousePosition(touch.clientX, touch.clientY)
+    }
+  }, [documentOpen, updateMousePosition])
 
   // Event listeners - separate mobile/desktop handlers
   useEffect(() => {
@@ -809,19 +817,22 @@ function Home() {
     
     // Only attach touch handlers on mobile devices
     if (isMobile) {
-      document.addEventListener('touchstart', handleTouchStart, { passive: false })
-      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      // Use passive: true for better performance - we're not preventing default
+      document.addEventListener('touchstart', handleTouchStart, { passive: true })
+      document.addEventListener('touchmove', handleTouchMove, { passive: true })
+      document.addEventListener('touchend', handleTouchEnd, { passive: true })
     }
     
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       if (isMobile) {
-      document.removeEventListener('touchstart', handleTouchStart)
-      document.removeEventListener('touchmove', handleTouchMove)
+        document.removeEventListener('touchstart', handleTouchStart)
+        document.removeEventListener('touchmove', handleTouchMove)
+        document.removeEventListener('touchend', handleTouchEnd)
       }
       if (touchMoveRafRef.current) cancelAnimationFrame(touchMoveRafRef.current)
     }
-  }, [handleMouseMove, handleTouchStart, handleTouchMove, isMobile])
+  }, [handleMouseMove, handleTouchStart, handleTouchMove, handleTouchEnd, isMobile])
 
 
 
