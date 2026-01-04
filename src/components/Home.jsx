@@ -768,7 +768,11 @@ function Home() {
 
   // Touch handlers - mobile only, properly isolated
   const handleTouchStart = useCallback((e) => {
+    // Only skip if document is open - work on bubbles page AND quotes page
     if (documentOpen) return
+    
+    // Only process if bubbles, quotes, or document is showing
+    if (!showBubbles && !showQuotes && !documentOpen) return
     
     const target = e.target
     // Only skip if it's a button/link that should handle its own click
@@ -781,10 +785,14 @@ function Home() {
       updateMousePosition(touch.clientX, touch.clientY)
       // Don't prevent default on touchstart - let it bubble for proper touch handling
     }
-  }, [documentOpen, isInteractiveElement, updateMousePosition])
+  }, [documentOpen, showBubbles, showQuotes, isInteractiveElement, updateMousePosition])
 
   const handleTouchMove = useCallback((e) => {
+    // Only skip if document is open - work on bubbles page AND quotes page
     if (documentOpen) return
+    
+    // Only process if bubbles, quotes, or document is showing
+    if (!showBubbles && !showQuotes && !documentOpen) return
     
     const target = e.target
     // Only skip if it's a button/link that should handle its own click
@@ -800,15 +808,15 @@ function Home() {
         updateMousePosition(touch.clientX, touch.clientY)
       })
     }
-  }, [documentOpen, isInteractiveElement, updateMousePosition])
+  }, [documentOpen, showBubbles, showQuotes, isInteractiveElement, updateMousePosition])
   
   const handleTouchEnd = useCallback((e) => {
-    // Keep cursor visible briefly after touch ends
-    if (e.changedTouches.length > 0 && !documentOpen) {
+    // Keep cursor visible briefly after touch ends - work on bubbles page AND quotes page
+    if (e.changedTouches.length > 0 && !documentOpen && (showBubbles || showQuotes)) {
       const touch = e.changedTouches[0]
       updateMousePosition(touch.clientX, touch.clientY)
     }
-  }, [documentOpen, updateMousePosition])
+  }, [documentOpen, showBubbles, showQuotes, updateMousePosition])
 
   // Event listeners - separate mobile/desktop handlers
   useEffect(() => {
