@@ -903,8 +903,8 @@ function Home() {
   return (
     <>
       <div className={`app ${documentOpen ? 'document-open' : ''} ${isMobile ? 'mobile' : 'desktop'}`}>
-        {/* Kaleidoscope glass veil - only on document page */}
-        {documentOpen && <div className="kglass"></div>}
+        {/* Kaleidoscope glass veil - on both pages */}
+        <div className="kglass"></div>
         
         {/* Cursor - optimized with direct DOM ref - show when bubbles, quotes, OR document is visible */}
         {(showBubbles || showQuotes || documentOpen) && (

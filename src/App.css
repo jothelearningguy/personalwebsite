@@ -19,14 +19,10 @@ html {
   position: relative;
   overflow-x: hidden; /* Allow vertical scrolling, prevent horizontal */
   overflow-y: auto; /* Enable vertical scrolling */
-  background: #0a0a0a; /* Black background for first page */
+  background: transparent; /* Background handled by body with prismatic gradient */
   cursor: none;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   transition: background 1s ease-in-out;
-  /* Subtle texture overlay for authenticity */
-  background-image: 
-    radial-gradient(circle at 20% 50%, rgba(120, 80, 200, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(200, 120, 80, 0.02) 0%, transparent 50%);
 }
 
 /* Kaleidoscope glass veil - Nigeria×USA prismatic effect */
