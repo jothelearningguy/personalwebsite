@@ -176,7 +176,7 @@
 }
 
 .blog-post-card:hover .read-more {
-  color: rgba(200, 160, 255, 1);
+  color: rgba(0, 135, 83, 1);
   transform: translateX(4px);
 }
 
