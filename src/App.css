@@ -39,19 +39,19 @@ html {
   mix-blend-mode: screen;
 }
 
-/* Individual lava lamp blobs - aurora lights glow - optimized */
+/* Individual lava lamp blobs - aurora lights glow - heavily optimized */
 .lava-blob {
   position: absolute;
   border-radius: 50%;
-  /* Reduced blur for better performance */
-  filter: blur(70px);
-  opacity: 0.5;
+  /* Minimal blur for maximum performance */
+  filter: blur(50px);
+  opacity: 0.4;
   will-change: transform;
   /* GPU acceleration */
   transform: translateZ(0);
   backface-visibility: hidden;
-  /* Reduced glow for performance */
-  box-shadow: 0 0 100px rgba(0, 255, 255, 0.15);
+  /* Minimal glow for performance */
+  box-shadow: none;
 }
 
 /* Blob 1 - Aurora green glow - optimized */
@@ -200,11 +200,6 @@ html {
     height: 250px;
   }
   
-  .blob-4, .blob-5 {
-    width: 200px;
-    height: 200px;
-  }
-  
 }
 
 /* Natural supernatural veil - soft misty overlay */
@@ -263,23 +258,8 @@ html {
 }
 
 .app::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(255, 255, 255, 0.01) 2px,
-      rgba(255, 255, 255, 0.01) 4px
-    );
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.3;
+  /* Disabled for performance */
+  display: none;
 }
 
 /* Nigeria×USA prismatic field background - only on document page */

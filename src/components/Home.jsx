@@ -196,8 +196,8 @@ function Home() {
     
       let frameCount = 0
       let lastUpdateTime = 0
-      const TARGET_FPS = 30 // Reduced from 60fps to 30fps for better performance
-      const FRAME_INTERVAL = 1000 / TARGET_FPS // ~33ms per frame
+      const TARGET_FPS = 20 // Aggressively reduced to 20fps for better performance
+      const FRAME_INTERVAL = 1000 / TARGET_FPS // ~50ms per frame
       
       // Cache expensive calculations
       const viewport = viewportRef.current
@@ -769,9 +769,6 @@ function Home() {
       <div className={`app ${documentOpen ? 'document-open' : ''} ${isMobile ? 'mobile' : 'desktop'}`}>
         {/* Lava lamp blobs - fluid organic shapes */}
         <LavaLamp />
-        
-        {/* Kaleidoscope glass veil - on both pages */}
-        <div className="kglass"></div>
         
         {/* Cursor - optimized with direct DOM ref - show when bubbles, quotes, OR document is visible */}
         {(showBubbles || showQuotes || documentOpen) && (
