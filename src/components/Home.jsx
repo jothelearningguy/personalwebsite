@@ -140,17 +140,13 @@ function Home() {
       // Initialize positions ref with initial positions
       bubblePositionsRef.current = initialBubblePositions.current.map(b => ({ ...b }))
       
-      // Initialize pill spring-follow state (pills follow bubbles with spring physics)
+      // Initialize pill positions (pills directly follow bubbles - no physics needed)
       pillPositionsRef.current = hiddenSecrets.map((secret, index) => {
         const bubble = bubblePositionsRef.current[index]
         return {
           id: secret.id,
           x: bubble?.x ?? 50, // Start at bubble position
-          y: bubble?.y ?? 50,
-          vx: 0,
-          vy: 0,
-          offsetX: 0, // Velocity-based offset for "string" effect
-          offsetY: 0
+          y: bubble?.y ?? 50
         }
       })
       
@@ -196,12 +192,11 @@ function Home() {
     
       let frameCount = 0
       let lastUpdateTime = 0
-      const TARGET_FPS = 20 // Aggressively reduced to 20fps for better performance
-      const FRAME_INTERVAL = 1000 / TARGET_FPS // ~50ms per frame
+      const TARGET_FPS = 15 // Very aggressively reduced to 15fps for maximum performance
+      const FRAME_INTERVAL = 1000 / TARGET_FPS // ~66ms per frame
       
       // Cache expensive calculations
       const viewport = viewportRef.current
-      const dampPowCache = {} // Cache Math.pow results
       
       const updateBubbles = (now) => {
         // Pause if tab is hidden
@@ -342,24 +337,21 @@ function Home() {
           x += vx * dt
           y += vy * dt
           
-          // Simplified gentle drift back toward base position (lava lamp effect)
-          const driftX = (baseX - x) * 0.01 // Reduced from 0.015 for less aggressive movement
-          const driftY = (baseY - y) * 0.01
-          // Simplified random drift - only every 8 frames for better performance
-          if (frameCount % 8 === 0) {
-            vx += (driftX + (Math.random() - 0.5) * 0.02) * dt
-            vy += (driftY + (Math.random() - 0.5) * 0.02) * dt
+          // Minimal drift - simplified for performance
+          const driftX = (baseX - x) * 0.005 // Very minimal drift
+          const driftY = (baseY - y) * 0.005
+          // Random drift only every 16 frames (much less frequent)
+          if (frameCount % 16 === 0) {
+            vx += (driftX + (Math.random() - 0.5) * 0.01) * dt
+            vy += (driftY + (Math.random() - 0.5) * 0.01) * dt
           } else {
             vx += driftX * dt
             vy += driftY * dt
           }
           
-          // Increased damping for smoother, less CPU-intensive movement
-          const damp = 0.99 // Increased from 0.985 for less movement
-          const dampKey = `${damp}_${dt.toFixed(3)}`
-          const dampValue = dampPowCache[dampKey] || (dampPowCache[dampKey] = Math.pow(damp, dt))
-          vx *= dampValue
-          vy *= dampValue
+          // High damping for minimal movement (better performance)
+          vx *= 0.995
+          vy *= 0.995
           
           // Simplified boundary constraints (keep bubbles on screen)
           if (x < 5) {
@@ -389,52 +381,24 @@ function Home() {
       // This was causing O(n²) complexity and significant CPU usage
       // Bubbles will now just drift naturally without collision checks
       
-      // Update pill positions using simplified spring-follow physics (pills tethered to bubbles)
+      // Update pill positions using DIRECT positioning (no spring physics for performance)
       const pills = pillPositionsRef.current
       if (pills && Array.isArray(pills)) {
-        // OPTIMIZED: Use direct array indexing instead of find() - O(1) instead of O(n)
         const viewport = viewportRef.current
-        const k = 0.06  // Reduced spring strength for smoother, less CPU-intensive movement
-        const damp = 0.85  // Increased damping for smoother movement
-        const dampKey = `${damp}_${dt.toFixed(3)}`
-        const dampValue = dampPowCache[dampKey] || (dampPowCache[dampKey] = Math.pow(damp, dt))
         
         positions.forEach((bubble, idx) => {
-          const pill = pills[idx] // Direct access - much faster than find()
+          const pill = pills[idx]
           if (!pill || !bubble) return
           
           // CRITICAL: Check for NaN values
-          if (!Number.isFinite(pill.x) || !Number.isFinite(pill.y) || !Number.isFinite(pill.vx) || !Number.isFinite(pill.vy)) {
-            // Reset to safe values based on bubble position
-            pill.x = (bubble.x / 100) * viewport.w
-            pill.y = (bubble.y / 100) * viewport.h
-            pill.vx = 0
-            pill.vy = 0
+          if (!Number.isFinite(bubble.x) || !Number.isFinite(bubble.y)) {
+            return
           }
           
-          // Simplified anchor point calculation (reduced offset for less movement)
-          pill.offsetX = -bubble.vx * 8 // Reduced from 12
-          pill.offsetY = -bubble.vy * 8
-          
-          // Convert bubble position from % to pixels for spring calculation
-          const anchorX = (bubble.x / 100) * viewport.w + pill.offsetX
-          const anchorY = (bubble.y / 100) * viewport.h + pill.offsetY
-          
-          // Simplified spring physics: accelerate toward anchor
-          const dx = anchorX - pill.x
-          const dy = anchorY - pill.y
-          
-          // Simplified spring physics with dt - use cached Math.pow result
-          pill.vx = pill.vx * dampValue + dx * k * dt
-          pill.vy = pill.vy * dampValue + dy * k * dt
-          
-          // Integrate position (dt-aware)
-          pill.x += pill.vx * dt
-          pill.y += pill.vy * dt
+          // DIRECT positioning - no spring physics, just follow bubble directly (much faster)
+          pill.x = (bubble.x / 100) * viewport.w
+          pill.y = (bubble.y / 100) * viewport.h
         })
-        
-        // REMOVED: Pill separation - major performance improvement
-        // This was causing O(n²) complexity. Pills will naturally avoid overlap through spring physics
       }
       
       // Update DOM directly for smooth performance - update every frame for smooth animation
@@ -457,12 +421,9 @@ function Home() {
               return // Skip rendering this frame
             }
             
-            // Calculate rotation based on velocity for "string" effect
-            const angle = Math.atan2(pill.vy, pill.vx) * (180 / Math.PI)
-            
-            // CRITICAL: Spring physics owns transform - no other code should set it
-            // Use translate3d for GPU acceleration with rotation for "mirror on a string" look
-            element.style.transform = `translate3d(${pill.x}px, ${pill.y}px, 0) rotate(${angle * 0.08}deg)`
+            // NO rotation calculation - just direct positioning for performance
+            // Use translate3d for GPU acceleration
+            element.style.transform = `translate3d(${pill.x}px, ${pill.y}px, 0)`
           }
         })
       }
@@ -495,8 +456,8 @@ function Home() {
       }
     }
     
-    // Sync periodically (not every frame)
-    const syncInterval = setInterval(syncArrivedState, 100)
+    // Sync less frequently for performance
+    const syncInterval = setInterval(syncArrivedState, 500)
     
     return () => {
       if (animationFrameRef.current) {
