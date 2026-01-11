@@ -8,7 +8,6 @@ import('./App.css')
 
 // Lazy load routes for code splitting - improves initial load time
 const Home = lazy(() => import('./components/Home'))
-const Blog = lazy(() => import('./components/Blog'))
 const J0InTheWrld = lazy(() => import('./components/J0InTheWrld'))
 
 // Minimal loading fallback - doesn't block initial render
@@ -35,7 +34,6 @@ function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/blog" element={<Blog />} />
           <Route path="/j0-in-the-wrld" element={<J0InTheWrld />} />
         </Routes>
       </Suspense>

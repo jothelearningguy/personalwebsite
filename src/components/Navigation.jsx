@@ -30,13 +30,6 @@ function Navigation() {
             home
           </Link>
           <Link 
-            to="/blog" 
-            className={`nav-link ${isActive('/blog') ? 'active' : ''}`}
-            onClick={() => setIsOpen(false)}
-          >
-            blog
-          </Link>
-          <Link 
             to="/j0-in-the-wrld" 
             className={`nav-link ${isActive('/j0-in-the-wrld') ? 'active' : ''}`}
             onClick={() => setIsOpen(false)}
