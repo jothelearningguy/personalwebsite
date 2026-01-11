@@ -377,9 +377,60 @@ function Home() {
         }
       })
       
-      // REMOVED: Collision detection - major performance improvement
-      // This was causing O(n²) complexity and significant CPU usage
-      // Bubbles will now just drift naturally without collision checks
+      // Collision detection - bubbles bounce off each other like a snow globe
+      // Simple circle-circle collision with elastic collision response
+      const BUBBLE_RADIUS = 3.5 // Approximate radius in percentage (7% diameter for pills)
+      const COLLISION_DAMPING = 0.8 // Damping factor for collision response (0-1)
+      
+      for (let i = 0; i < positions.length; i++) {
+        const bubble1 = positions[i]
+        if (!bubble1 || bubble1.phase !== PHASE.FLOATING) continue
+        
+        for (let j = i + 1; j < positions.length; j++) {
+          const bubble2 = positions[j]
+          if (!bubble2 || bubble2.phase !== PHASE.FLOATING) continue
+          
+          // Calculate distance between bubble centers
+          const dx = bubble2.x - bubble1.x
+          const dy = bubble2.y - bubble1.y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+          const minDistance = BUBBLE_RADIUS * 2
+          
+          // Check if bubbles are colliding
+          if (distance < minDistance && distance > 0.001) {
+            // Normalize collision vector
+            const nx = dx / distance
+            const ny = dy / distance
+            
+            // Separate bubbles to prevent overlap
+            const overlap = minDistance - distance
+            const separationX = nx * overlap * 0.5
+            const separationY = ny * overlap * 0.5
+            
+            bubble1.x -= separationX
+            bubble1.y -= separationY
+            bubble2.x += separationX
+            bubble2.y += separationY
+            
+            // Calculate relative velocity
+            const relativeVx = bubble2.vx - bubble1.vx
+            const relativeVy = bubble2.vy - bubble1.vy
+            const relativeSpeed = relativeVx * nx + relativeVy * ny
+            
+            // Only resolve collision if bubbles are moving towards each other
+            if (relativeSpeed < 0) {
+              // Calculate impulse (elastic collision)
+              const impulse = relativeSpeed * COLLISION_DAMPING
+              
+              // Apply impulse to velocities
+              bubble1.vx += impulse * nx
+              bubble1.vy += impulse * ny
+              bubble2.vx -= impulse * nx
+              bubble2.vy -= impulse * ny
+            }
+          }
+        }
+      }
       
       // Update pill positions using DIRECT positioning (no spring physics for performance)
       const pills = pillPositionsRef.current
@@ -704,7 +755,7 @@ function Home() {
         from_name: formData.name,
         from_email: formData.email,
         message: formData.message,
-        to_email: 'josephayinde64@gmail.com'
+        to_email: 'joseph@cognitionus.com'
       }, EMAILJS_PUBLIC_KEY)
 
       setFormStatus({ loading: false, success: true, error: '' })

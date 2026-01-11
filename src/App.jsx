@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navigation from './components/Navigation'
 import GlobalCursor from './components/GlobalCursor'
+import SocialMedia from './components/SocialMedia'
 // CSS imported normally - Vite will extract it in production
 // Critical CSS is inlined in index.html to prevent render blocking
 import('./App.css')
@@ -31,6 +32,7 @@ function App() {
     <Router>
       <GlobalCursor />
       <Navigation />
+      <SocialMedia />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Home />} />
