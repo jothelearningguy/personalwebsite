@@ -151,9 +151,33 @@
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border-radius: 20px;
+  /* Unique organic blob shape - irregular border-radius */
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  position: relative;
+  transform: rotate(-2deg);
+  animation: blobMorph 8s ease-in-out infinite;
+}
+
+/* Subtle organic animation - shape morphs slightly */
+@keyframes blobMorph {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: rotate(-2deg);
+  }
+  25% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    transform: rotate(1deg);
+  }
+  50% {
+    border-radius: 50% 50% 30% 80% / 40% 40% 60% 50%;
+    transform: rotate(-1deg);
+  }
+  75% {
+    border-radius: 40% 60% 50% 50% / 60% 30% 70% 40%;
+    transform: rotate(0.5deg);
+  }
 }
 
 .coming-soon-title {
