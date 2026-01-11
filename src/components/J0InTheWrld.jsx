@@ -3,7 +3,7 @@ import './J0InTheWrld.css'
 
 const bannerImages = [
   { src: '/assets/images/cognition.jpg', alt: 'Cognition' },
-  { src: '/assets/images/open-ai.jpg?nocache=20260111', alt: 'OpenAI' },
+  { src: '/assets/images/open-ai.jpg', alt: 'OpenAI' },
   { src: '/assets/images/neurosurgery.jpg', alt: 'Neurosurgery' },
   { src: '/assets/images/cmu.jpg', alt: 'Carnegie Mellon' },
   { src: '/assets/images/unc.JPG', alt: 'UNC Chapel Hill' },
