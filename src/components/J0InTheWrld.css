@@ -14,9 +14,19 @@
   overflow: hidden;
 }
 
-/* Removed gradientShift animation for performance */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
 
-/* Matrix background container - heavily optimized */
+/* Matrix background container - lightweight version */
 .matrix-background {
   position: fixed;
   top: 0;
@@ -25,14 +35,14 @@
   height: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  gap: 40px;
-  padding: 60px;
+  grid-template-rows: repeat(2, 1fr);
+  gap: 50px;
+  padding: 80px;
   pointer-events: none;
   z-index: 1;
 }
 
-/* Matrix image cell - NO ANIMATION for maximum performance */
+/* Matrix image cell - gentle rotation animation */
 .matrix-image-cell {
   position: relative;
   width: 100%;
@@ -40,7 +50,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Removed all animations for performance */
+  animation: matrixTwirl var(--duration, 20s) var(--delay, 0s) infinite ease-in-out;
 }
 
 /* Matrix image - optimized */
@@ -57,9 +67,15 @@
   transform-origin: center center;
 }
 
-/* Removed hover effect for performance */
-
-/* Removed matrixTwirl animation completely for performance */
+/* Simple gentle rotation animation */
+@keyframes matrixTwirl {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+}
 
 /* Content overlay - removed backdrop-filter for performance */
 .j0-wrld-content {
@@ -147,9 +163,9 @@
 @media (max-width: 1024px) {
   .matrix-background {
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 30px;
-    padding: 50px;
+    grid-template-rows: repeat(2, 1fr);
+    gap: 40px;
+    padding: 60px;
   }
 
   .matrix-image {
@@ -161,9 +177,9 @@
 @media (max-width: 768px) {
   .matrix-background {
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: 20px;
-    padding: 40px;
+    grid-template-rows: repeat(3, 1fr);
+    gap: 30px;
+    padding: 50px;
   }
 
   .matrix-image {
