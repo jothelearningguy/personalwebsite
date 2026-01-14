@@ -8,7 +8,11 @@
     #4facfe 75%, 
     #00f2fe 100%);
   background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  /* Slower animation for better performance */
+  animation: gradientShift 25s ease infinite;
+  /* GPU acceleration */
+  transform: translateZ(0);
+  will-change: background-position;
   color: #fff;
   padding: 0;
   position: relative;
@@ -27,7 +31,7 @@
   }
 }
 
-/* Matrix background container */
+/* Matrix background container - OPTIMIZED */
 .matrix-background {
   position: fixed;
   top: 0;
@@ -35,15 +39,19 @@
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(8, 1fr);
-  gap: 30px;
-  padding: 50px;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 40px;
+  padding: 60px;
   pointer-events: none;
   z-index: 1;
+  /* GPU acceleration and containment */
+  transform: translateZ(0);
+  contain: layout style paint;
+  will-change: contents;
 }
 
-/* Matrix image cell - twirling animation */
+/* Matrix image cell - OPTIMIZED twirling animation */
 .matrix-image-cell {
   position: relative;
   width: 100%;
@@ -52,44 +60,52 @@
   align-items: center;
   justify-content: center;
   animation: matrixTwirl var(--duration, 20s) var(--delay, 0s) infinite ease-in-out;
+  /* GPU acceleration */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: layout style paint;
+  /* Only use will-change when animating */
   will-change: transform;
 }
 
-/* Matrix image */
+/* Matrix image - OPTIMIZED */
 .matrix-image {
   width: 100%;
   height: 100%;
-  max-width: 200px;
-  max-height: 200px;
+  max-width: 250px;
+  max-height: 250px;
   object-fit: cover;
   border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  opacity: 0.7;
+  /* Reduced box-shadow for performance */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0.65;
   transform-origin: center center;
-  transition: opacity 0.3s ease;
+  /* GPU acceleration */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  /* Remove transition - causes repaints */
+  /* transition: opacity 0.3s ease; */
 }
 
-.matrix-image:hover {
-  opacity: 1;
-}
+/* Removed hover effect for performance */
 
-/* Twirling animation - translate, rotate, and scale */
+/* Twirling animation - OPTIMIZED: simplified to reduce calc() overhead */
 @keyframes matrixTwirl {
   0%, 100% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(0deg);
   }
   25% {
-    transform: translate(calc(var(--move, 50px) * 0.5), calc(var(--move, 50px) * -0.3)) rotate(calc(var(--rotation, 180deg) * 0.25)) scale(1.1);
+    transform: translate3d(30px, -18px, 0) rotate(calc(var(--rotation, 180deg) * 0.25));
   }
   50% {
-    transform: translate(calc(var(--move, 50px) * 0.7), calc(var(--move, 50px) * 0.5)) rotate(calc(var(--rotation, 180deg) * 0.5)) scale(0.9);
+    transform: translate3d(42px, 30px, 0) rotate(calc(var(--rotation, 180deg) * 0.5));
   }
   75% {
-    transform: translate(calc(var(--move, 50px) * -0.4), calc(var(--move, 50px) * 0.6)) rotate(calc(var(--rotation, 180deg) * 0.75)) scale(1.05);
+    transform: translate3d(-24px, 36px, 0) rotate(calc(var(--rotation, 180deg) * 0.75));
   }
 }
 
-/* Content overlay */
+/* Content overlay - OPTIMIZED */
 .j0-wrld-content {
   position: relative;
   z-index: 10;
@@ -99,8 +115,9 @@
   justify-content: center;
   align-items: center;
   padding: 4rem 2rem;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.25);
+  /* Removed backdrop-filter - very expensive */
+  /* backdrop-filter: blur(2px); */
 }
 
 /* Header Section */
@@ -134,37 +151,29 @@
   font-weight: 300;
 }
 
-/* Coming Soon Section */
+/* Coming Soon Section - OPTIMIZED */
 .coming-soon-section {
   text-align: center;
   padding: 3rem 2rem;
   max-width: 600px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  /* Unique organic blob shape - irregular border-radius */
+  background: rgba(255, 255, 255, 0.18);
+  /* Removed backdrop-filter - very expensive */
+  /* backdrop-filter: blur(10px); */
+  /* Static organic blob shape - removed animation for performance */
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   position: relative;
   transform: rotate(-2deg);
-  animation: blobMorph 8s ease-in-out infinite;
+  /* Removed blobMorph animation - border-radius animation causes repaints */
+  /* animation: blobMorph 8s ease-in-out infinite; */
+  /* GPU acceleration */
+  transform: translateZ(0) rotate(-2deg);
+  backface-visibility: hidden;
 }
 
-@keyframes blobMorph {
-  0%, 100% {
-    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  }
-  25% {
-    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-  }
-  50% {
-    border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
-  }
-  75% {
-    border-radius: 40% 60% 50% 40% / 60% 40% 60% 40%;
-  }
-}
+/* Removed blobMorph keyframes - non-composited animation */
 
 .coming-soon-title {
   font-family: 'Space Mono', 'Courier New', monospace;
@@ -186,32 +195,32 @@
   line-height: 1.6;
 }
 
-/* Mobile Responsive */
+/* Mobile Responsive - OPTIMIZED */
 @media (max-width: 1024px) {
   .matrix-background {
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(6, 1fr);
-    gap: 25px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 35px;
+    padding: 50px;
+  }
+
+  .matrix-image {
+    max-width: 220px;
+    max-height: 220px;
+  }
+}
+
+@media (max-width: 768px) {
+  .matrix-background {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 30px;
     padding: 40px;
   }
 
   .matrix-image {
     max-width: 180px;
     max-height: 180px;
-  }
-}
-
-@media (max-width: 768px) {
-  .matrix-background {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(4, 1fr);
-    gap: 20px;
-    padding: 30px;
-  }
-
-  .matrix-image {
-    max-width: 150px;
-    max-height: 150px;
   }
 
   .j0-wrld-content {
@@ -226,19 +235,28 @@
   .coming-soon-section {
     padding: 2rem 1.5rem;
   }
+  
+  /* Disable animations on mobile for better performance */
+  .matrix-image-cell {
+    animation: none;
+  }
+  
+  .j0-wrld-container {
+    animation: none;
+  }
 }
 
 @media (max-width: 480px) {
   .matrix-background {
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 15px;
-    padding: 20px;
+    grid-template-rows: repeat(2, 1fr);
+    gap: 25px;
+    padding: 30px;
   }
 
   .matrix-image {
-    max-width: 120px;
-    max-height: 120px;
+    max-width: 150px;
+    max-height: 150px;
   }
 
   .j0-wrld-content {

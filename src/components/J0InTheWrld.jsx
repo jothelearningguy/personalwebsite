@@ -14,11 +14,12 @@ const bannerImages = [
   { src: '/assets/images/saywordfc.jpg', alt: 'Say Word FC' }
 ]
 
-// Create a matrix of images with twirling animation
+// Create a matrix of images with twirling animation - OPTIMIZED for performance
 function createMatrixImages() {
   const matrixImages = []
-  const columns = 6
-  const rows = 8
+  // Reduced from 6x8 (48) to 4x4 (16) for 67% reduction in DOM elements
+  const columns = 4
+  const rows = 4
   
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < columns; col++) {
@@ -26,15 +27,20 @@ function createMatrixImages() {
       const image = bannerImages[imageIndex]
       const uniqueId = `matrix-${row}-${col}`
       
+      // Pre-calculate animation values for better performance
+      const delay = row * 0.8 + col * 0.3 // Staggered delays instead of random
+      const duration = 20 + (row % 3) * 5 // Vary durations (20s, 25s, 30s)
+      const rotation = 180 + (col % 2) * 180 // Alternate 180deg and 360deg
+      
       matrixImages.push({
         ...image,
         id: uniqueId,
         row,
         col,
-        animationDelay: Math.random() * 5,
-        animationDuration: 15 + Math.random() * 15,
-        rotationSpeed: 360 + Math.random() * 360,
-        moveDistance: 100 + Math.random() * 100
+        animationDelay: delay,
+        animationDuration: duration,
+        rotationSpeed: rotation,
+        moveDistance: 60 // Fixed smaller distance for consistency
       })
     }
   }
@@ -56,8 +62,7 @@ function J0InTheWrld() {
             style={{
               '--delay': `${imageData.animationDelay}s`,
               '--duration': `${imageData.animationDuration}s`,
-              '--rotation': `${imageData.rotationSpeed}deg`,
-              '--move': `${imageData.moveDistance}px`
+              '--rotation': `${imageData.rotationSpeed}deg`
             }}
           >
             <img
