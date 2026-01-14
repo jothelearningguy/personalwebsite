@@ -378,55 +378,77 @@ function Home() {
       })
       
       // Collision detection - bubbles bounce off each other like a snow globe
-      // Simple circle-circle collision with elastic collision response
+      // Optimized: Only check collisions every few frames and use spatial optimization
       const BUBBLE_RADIUS = 3.5 // Approximate radius in percentage (7% diameter for pills)
       const COLLISION_DAMPING = 0.8 // Damping factor for collision response (0-1)
       
-      for (let i = 0; i < positions.length; i++) {
-        const bubble1 = positions[i]
-        if (!bubble1 || bubble1.phase !== PHASE.FLOATING) continue
+      // Only run collision detection every 2 frames for performance (30fps -> 15fps collision checks)
+      if (frameCount % 2 === 0) {
+        // Pre-filter floating bubbles for better performance
+        const floatingBubbles = positions.filter(b => b && b.phase === PHASE.FLOATING && 
+          Number.isFinite(b.x) && Number.isFinite(b.y) && 
+          Number.isFinite(b.vx) && Number.isFinite(b.vy))
         
-        for (let j = i + 1; j < positions.length; j++) {
-          const bubble2 = positions[j]
-          if (!bubble2 || bubble2.phase !== PHASE.FLOATING) continue
+        // Optimized collision detection with early exit
+        for (let i = 0; i < floatingBubbles.length; i++) {
+          const bubble1 = floatingBubbles[i]
+          if (!bubble1) continue
           
-          // Calculate distance between bubble centers
-          const dx = bubble2.x - bubble1.x
-          const dy = bubble2.y - bubble1.y
-          const distance = Math.sqrt(dx * dx + dy * dy)
-          const minDistance = BUBBLE_RADIUS * 2
-          
-          // Check if bubbles are colliding
-          if (distance < minDistance && distance > 0.001) {
-            // Normalize collision vector
-            const nx = dx / distance
-            const ny = dy / distance
+          for (let j = i + 1; j < floatingBubbles.length; j++) {
+            const bubble2 = floatingBubbles[j]
+            if (!bubble2) continue
             
-            // Separate bubbles to prevent overlap
-            const overlap = minDistance - distance
-            const separationX = nx * overlap * 0.5
-            const separationY = ny * overlap * 0.5
+            // Quick distance check (squared distance to avoid sqrt)
+            const dx = bubble2.x - bubble1.x
+            const dy = bubble2.y - bubble1.y
+            const distSq = dx * dx + dy * dy
+            const minDistSq = (BUBBLE_RADIUS * 2) * (BUBBLE_RADIUS * 2)
             
-            bubble1.x -= separationX
-            bubble1.y -= separationY
-            bubble2.x += separationX
-            bubble2.y += separationY
+            // Early exit if bubbles are too far apart
+            if (distSq > minDistSq || distSq < 0.000001) continue
             
-            // Calculate relative velocity
-            const relativeVx = bubble2.vx - bubble1.vx
-            const relativeVy = bubble2.vy - bubble1.vy
-            const relativeSpeed = relativeVx * nx + relativeVy * ny
+            // Only calculate sqrt when collision is detected
+            const distance = Math.sqrt(distSq)
+            const minDistance = BUBBLE_RADIUS * 2
             
-            // Only resolve collision if bubbles are moving towards each other
-            if (relativeSpeed < 0) {
-              // Calculate impulse (elastic collision)
-              const impulse = relativeSpeed * COLLISION_DAMPING
+            // Check if bubbles are colliding
+            if (distance < minDistance && distance > 0.001) {
+              // Normalize collision vector
+              const nx = dx / distance
+              const ny = dy / distance
               
-              // Apply impulse to velocities
-              bubble1.vx += impulse * nx
-              bubble1.vy += impulse * ny
-              bubble2.vx -= impulse * nx
-              bubble2.vy -= impulse * ny
+              // Separate bubbles to prevent overlap
+              const overlap = minDistance - distance
+              const separationX = nx * overlap * 0.5
+              const separationY = ny * overlap * 0.5
+              
+              bubble1.x -= separationX
+              bubble1.y -= separationY
+              bubble2.x += separationX
+              bubble2.y += separationY
+              
+              // Clamp positions to prevent NaN
+              bubble1.x = Math.max(5, Math.min(95, bubble1.x))
+              bubble1.y = Math.max(5, Math.min(95, bubble1.y))
+              bubble2.x = Math.max(5, Math.min(95, bubble2.x))
+              bubble2.y = Math.max(5, Math.min(95, bubble2.y))
+              
+              // Calculate relative velocity
+              const relativeVx = bubble2.vx - bubble1.vx
+              const relativeVy = bubble2.vy - bubble1.vy
+              const relativeSpeed = relativeVx * nx + relativeVy * ny
+              
+              // Only resolve collision if bubbles are moving towards each other
+              if (relativeSpeed < 0) {
+                // Calculate impulse (elastic collision)
+                const impulse = relativeSpeed * COLLISION_DAMPING
+                
+                // Apply impulse to velocities with clamping
+                bubble1.vx = Math.max(-2, Math.min(2, bubble1.vx + impulse * nx))
+                bubble1.vy = Math.max(-2, Math.min(2, bubble1.vy + impulse * ny))
+                bubble2.vx = Math.max(-2, Math.min(2, bubble2.vx - impulse * nx))
+                bubble2.vy = Math.max(-2, Math.min(2, bubble2.vy - impulse * ny))
+              }
             }
           }
         }
@@ -447,8 +469,15 @@ function Home() {
           }
           
           // DIRECT positioning - no spring physics, just follow bubble directly (much faster)
-          pill.x = (bubble.x / 100) * viewport.w
-          pill.y = (bubble.y / 100) * viewport.h
+          // Add safety checks and clamping
+          const safeBubbleX = Math.max(0, Math.min(100, bubble.x))
+          const safeBubbleY = Math.max(0, Math.min(100, bubble.y))
+          pill.x = (safeBubbleX / 100) * viewport.w
+          pill.y = (safeBubbleY / 100) * viewport.h
+          
+          // Ensure pill values are finite
+          if (!Number.isFinite(pill.x)) pill.x = (safeBubbleX / 100) * viewport.w
+          if (!Number.isFinite(pill.y)) pill.y = (safeBubbleY / 100) * viewport.h
         })
       }
       
@@ -462,19 +491,40 @@ function Home() {
       
       // Update pill DOM elements with spring-follow positions
       // CRITICAL: This is the ONLY place that should update pill transforms
-      if (pills && Array.isArray(pills)) {
-        pills.forEach(pill => {
+      if (pills && Array.isArray(pills) && viewport.w > 0 && viewport.h > 0) {
+        pills.forEach((pill, idx) => {
+          if (!pill || !pill.id) return
+          
           const element = bubbleElementsRef.current[pill.id]
-          if (element) {
-            // Final NaN check before rendering
-            if (!Number.isFinite(pill.x) || !Number.isFinite(pill.y)) {
-              console.error('PILL NaN before render:', { id: pill.id, x: pill.x, y: pill.y })
-              return // Skip rendering this frame
+          if (!element) return
+          
+          // Get corresponding bubble for fallback
+          const bubble = positions && positions[idx]
+          
+          // Final NaN check before rendering with fallback
+          if (!Number.isFinite(pill.x) || !Number.isFinite(pill.y)) {
+            // Reset to safe position instead of skipping
+            const fallbackX = bubble && Number.isFinite(bubble.x) ? (bubble.x / 100) * viewport.w : viewport.w / 2
+            const fallbackY = bubble && Number.isFinite(bubble.y) ? (bubble.y / 100) * viewport.h : viewport.h / 2
+            pill.x = fallbackX
+            pill.y = fallbackY
+          }
+          
+          // Clamp values to prevent off-screen rendering (allow slight overflow for smooth animation)
+          const safeX = Math.max(-100, Math.min(viewport.w + 100, pill.x))
+          const safeY = Math.max(-100, Math.min(viewport.h + 100, pill.y))
+          
+          // NO rotation calculation - just direct positioning for performance
+          // Use translate3d for GPU acceleration
+          try {
+            if (element && element.style) {
+              element.style.transform = `translate3d(${safeX}px, ${safeY}px, 0)`
             }
-            
-            // NO rotation calculation - just direct positioning for performance
-            // Use translate3d for GPU acceleration
-            element.style.transform = `translate3d(${pill.x}px, ${pill.y}px, 0)`
+          } catch (err) {
+            // Silently fail if element is no longer in DOM - prevents crashes
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Failed to update pill transform:', err)
+            }
           }
         })
       }
@@ -741,22 +791,63 @@ function Home() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }, [])
 
+  // Input validation and sanitization
+  const sanitizeInput = (input) => {
+    if (typeof input !== 'string') return ''
+    return input.trim().slice(0, 1000) // Limit length
+  }
+
+  const validateEmail = (email) => {
+    if (!email || typeof email !== 'string') return false
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email.trim())
+  }
+
   const handleFormSubmit = useCallback(async (e) => {
     e.preventDefault()
+    
+    // Validate inputs
+    const sanitizedName = sanitizeInput(formData.name)
+    const sanitizedEmail = sanitizeInput(formData.email)
+    const sanitizedMessage = sanitizeInput(formData.message)
+    
+    if (!sanitizedName || sanitizedName.length < 2) {
+      setFormStatus({ loading: false, success: false, error: 'Please enter a valid name (at least 2 characters).' })
+      return
+    }
+    
+    if (!validateEmail(sanitizedEmail)) {
+      setFormStatus({ loading: false, success: false, error: 'Please enter a valid email address.' })
+      return
+    }
+    
+    if (!sanitizedMessage || sanitizedMessage.length < 10) {
+      setFormStatus({ loading: false, success: false, error: 'Please enter a message (at least 10 characters).' })
+      return
+    }
+    
     setFormStatus({ loading: true, success: false, error: '' })
 
-    if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID' || EMAILJS_TEMPLATE_ID === 'YOUR_TEMPLATE_ID' || EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
-      setFormStatus({ loading: false, success: false, error: 'Email service not configured.' })
+    if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY ||
+        EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID' || 
+        EMAILJS_TEMPLATE_ID === 'YOUR_TEMPLATE_ID' || 
+        EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
+      setFormStatus({ loading: false, success: false, error: 'Email service not configured. Please contact the site administrator.' })
       return
     }
 
     try {
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        from_name: formData.name,
-        from_email: formData.email,
-        message: formData.message,
-        to_email: 'joseph@cognitionus.com'
-      }, EMAILJS_PUBLIC_KEY)
+      await emailjs.send(
+        EMAILJS_SERVICE_ID, 
+        EMAILJS_TEMPLATE_ID, 
+        {
+          from_name: sanitizedName,
+          from_email: sanitizedEmail,
+          message: sanitizedMessage,
+          to_email: 'joseph@cognitionus.com'
+        }, 
+        EMAILJS_PUBLIC_KEY
+      )
 
       setFormStatus({ loading: false, success: true, error: '' })
       setFormData({ name: '', email: '', message: '' })
@@ -766,7 +857,12 @@ function Home() {
       }, 3000)
     } catch (error) {
       console.error('EmailJS error:', error)
-      setFormStatus({ loading: false, success: false, error: 'Failed to send message. Please try again later.' })
+      const errorMessage = error?.text || error?.message || 'Unknown error'
+      setFormStatus({ 
+        loading: false, 
+        success: false, 
+        error: `Failed to send message: ${errorMessage}. Please try again later.` 
+      })
     }
   }, [formData])
 

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navigation from './components/Navigation'
 import GlobalCursor from './components/GlobalCursor'
 import SocialMedia from './components/SocialMedia'
+import ErrorBoundary from './components/ErrorBoundary'
 // CSS imported normally - Vite will extract it in production
 // Critical CSS is inlined in index.html to prevent render blocking
 import('./App.css')
@@ -29,17 +30,23 @@ const LoadingFallback = () => (
 
 function App() {
   return (
-    <Router>
-      <GlobalCursor />
-      <Navigation />
-      <SocialMedia />
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/j0-in-the-wrld" element={<J0InTheWrld />} />
-        </Routes>
-      </Suspense>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <ErrorBoundary>
+          <GlobalCursor />
+          <Navigation />
+          <SocialMedia />
+        </ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/j0-in-the-wrld" element={<J0InTheWrld />} />
+            </Routes>
+          </ErrorBoundary>
+        </Suspense>
+      </Router>
+    </ErrorBoundary>
   )
 }
 
